@@ -7,7 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet"/>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #f0f2f5; }
+    body { background: #F8FAFC; }
     @keyframes toastIn { from { opacity:0; transform:translateX(-50%) translateY(20px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
     @keyframes toastOut { from { opacity:1; transform:translateX(-50%) translateY(0); } to { opacity:0; transform:translateX(-50%) translateY(20px); } }
   </style>
@@ -19,7 +19,7 @@
   <div id="root"></div>
   <script type="text/babel">
 /*
-  專案管理 Dashboard — Silicon Valley Dark Theme
+  專案管理 Dashboard — 2026 Calm Light Theme (Linear / Notion / Stripe)
   CC: Supabase 整合指引見檔案底部註解
 */
 const { useState, useEffect, useMemo, useRef, useCallback } = React;
@@ -76,23 +76,23 @@ function fetchData() { return { tasks: SEED_TASKS, subtasks: SEED_SUBTASKS }; }
 function toggleSubMem(subs, id) { return subs.map(s => s.id === id ? { ...s, done: !s.done, done_date: !s.done ? new Date().toLocaleDateString("zh-TW") : null } : s); }
 function computeProgress(tid, subs) { const s = subs.filter(x => x.task_id === tid); if (!s.length) return { total:0,done:0,pct:0 }; const d = s.filter(x => x.done).length; return { total:s.length,done:d,pct:Math.round(d/s.length*100) }; }
 
-// ── Silicon Valley Dark Theme (Linear / Vercel / Slate) ──
+// ── 2026 Calm Light Theme (Linear / Notion / Stripe) ──
 const X = {
-  bg:"#0B0F1A", surface:"#111827", surfaceHover:"#1F2937", surfaceLight:"#1A2332",
-  accent:"#818CF8", accentDark:"#6366F1",
-  text:"#E2E8F0", textSec:"#94A3B8", textDim:"#64748B",
-  border:"#1E293B", borderLight:"#334155",
-  red:"#F87171", amber:"#FBBF24", green:"#34D399", purple:"#A78BFA", pink:"#F472B6",
+  bg:"#F8FAFC", surface:"#FFFFFF", surfaceHover:"#F1F5F9", surfaceLight:"#F1F5F9",
+  accent:"#3B82F6", accentDark:"#2563EB",
+  text:"#0F172A", textSec:"#475569", textDim:"#94A3B8",
+  border:"#E2E8F0", borderLight:"#F1F5F9",
+  red:"#EF4444", amber:"#F59E0B", green:"#10B981", purple:"#8B5CF6", pink:"#EC4899",
 };
 const SC = {
-  "已完成":{color:X.green,bg:"#34D39915",icon:"✓"},
-  "進行中":{color:X.amber,bg:"#FBBF2415",icon:"▸"},
-  "待辦":{color:X.accent,bg:"#818CF815",icon:"○"},
-  "提案中":{color:X.pink,bg:"#F472B615",icon:"◇"},
+  "已完成":{color:X.green,bg:"#10B98115",icon:"✓"},
+  "進行中":{color:X.amber,bg:"#F59E0B15",icon:"▸"},
+  "待辦":{color:X.accent,bg:"#3B82F615",icon:"○"},
+  "提案中":{color:X.pink,bg:"#EC489915",icon:"◇"},
 };
 const PC = {"高":{color:X.red},"中":{color:X.amber},"低":{color:X.textDim}};
-const CC = {"商務合作":"#60A5FA","活動":"#A78BFA","播出/開始":"#FBBF24","行銷":"#22D3EE","發行":"#34D399","市場展":"#F87171"};
-const PJC = ["#818CF8","#A78BFA","#FBBF24","#F87171","#34D399","#60A5FA","#F472B6"];
+const CC = {"商務合作":"#3B82F6","活動":"#8B5CF6","播出/開始":"#F59E0B","行銷":"#06B6D4","發行":"#10B981","市場展":"#EF4444"};
+const PJC = ["#3B82F6","#8B5CF6","#F59E0B","#EF4444","#10B981","#06B6D4","#EC4899"];
 const F = "'Noto Sans TC',-apple-system,BlinkMacSystemFont,sans-serif";
 const FM = "'JetBrains Mono','SF Mono',monospace";
 function pD(s){if(!s)return null;const[y,m,d]=s.split("/").map(Number);return new Date(y,m-1,d);}
@@ -194,7 +194,7 @@ function GanttTimeline({tasks,subtasks,fp,fs,fpr}){
                 {r.task.progress>0&&<div style={{position:"absolute",left:`${r.l}%`,width:`${r.w*r.task.progress/100}%`,top:8,height:20,borderRadius:10,background:bc,opacity:dn?0.4:0.7,minWidth:4}}/>}
                 {r.task.progress>0&&r.task.progress<100&&r.w>3&&<div style={{position:"absolute",left:`${r.l+r.w*r.task.progress/100+0.4}%`,top:11,fontSize:14,fontFamily:FM,color:bc,fontWeight:600}}>{r.task.progress}%</div>}
                 {dn&&r.w>3&&<div style={{position:"absolute",left:`${r.l+r.w/2}%`,top:11,fontSize:14,fontFamily:FM,color:X.green,fontWeight:700,transform:"translateX(-50%)"}}>100%</div>}
-                {hv&&<div style={{position:"absolute",left:`${Math.min(Math.max(r.l,2),65)}%`,bottom:34,background:X.surfaceLight,color:X.text,fontSize:14,padding:"6px 12px",borderRadius:8,whiteSpace:"nowrap",maxWidth:"90vw",overflow:"hidden",textOverflow:"ellipsis",zIndex:30,boxShadow:"0 4px 16px rgba(0,0,0,0.7)",border:`1px solid ${X.border}`}}>{fD(r.task.start)} → {fD(r.task.end)}　{r.task.duration}d　{r.task.progress}%</div>}
+                {hv&&<div style={{position:"absolute",left:`${Math.min(Math.max(r.l,2),65)}%`,bottom:34,background:X.surfaceLight,color:X.text,fontSize:14,padding:"6px 12px",borderRadius:8,whiteSpace:"nowrap",maxWidth:"90vw",overflow:"hidden",textOverflow:"ellipsis",zIndex:30,boxShadow:"0 4px 16px rgba(0,0,0,0.12)",border:`1px solid ${X.border}`}}>{fD(r.task.start)} → {fD(r.task.end)}　{r.task.duration}d　{r.task.progress}%</div>}
               </div>);
             })}
           </div>
@@ -296,7 +296,7 @@ function Dashboard(){
   return (
     <div style={{minHeight:"100vh",background:X.bg,fontFamily:F,color:X.text}}>
       <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet"/>
-      <style>{`::selection{background:#818CF830} *{box-sizing:border-box} ::-webkit-scrollbar{width:6px;height:6px} ::-webkit-scrollbar-thumb{background:#334155;border-radius:3px} ::-webkit-scrollbar-track{background:transparent} input,select,button{font-family:'Noto Sans TC',-apple-system,sans-serif}`}</style>
+      <style>{`::selection{background:#3B82F630} *{box-sizing:border-box} ::-webkit-scrollbar{width:6px;height:6px} ::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px} ::-webkit-scrollbar-track{background:transparent} input,select,button{font-family:'Noto Sans TC',-apple-system,sans-serif}`}</style>
       <input type="file" accept="image/*" ref={fileRef} style={{display:"none"}} onChange={e=>{if(uploadTarget)handleIconUpload(e,uploadTarget);setUploadTarget(null);}}/>
 
       {/* Header */}
@@ -369,22 +369,29 @@ function Dashboard(){
 
         {/* ── OVERVIEW ── */}
         {tab==="overview"&&(<>
+          {/* Row 1 — Action Zone: Overdue Tasks | Upcoming Deadlines */}
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(340px, 1fr))",gap:16}}>
-            <div style={{display:"flex",flexDirection:"column",gap:16}}>
-              <div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
-                <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 16px",display:"flex",alignItems:"center",gap:8}}><span style={{width:3,height:14,background:X.accent,borderRadius:2}}/>Project Progress</h3>
-                {Object.entries(projStats).map(([proj,s])=>{const avg=s.total>0?Math.round(s.pSum/s.total):0;return (
-                  <div key={proj} style={{marginBottom:14}}>
-                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                      <span style={{fontSize:14,fontWeight:500,display:"flex",alignItems:"center",gap:6}}><span style={{width:6,height:6,borderRadius:"50%",background:pcMap[proj]}}/>
-                        {projIcons[proj]&&<img src={projIcons[proj]} style={{width:16,height:16,borderRadius:4,objectFit:"cover"}}/>}{proj}
-                      </span>
-                      <span style={{fontFamily:FM,fontSize:12,color:X.textDim}}>{avg}%</span>
+            {(()=>{
+              const now=new Date();
+              const overdue=filtered.filter(t=>{if(!t.end||t.status==="已完成")return false;return pD(t.end)<now;}).sort((a,b)=>pD(a.end)-pD(b.end));
+              return (<div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
+                <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 12px",display:"flex",alignItems:"center",gap:8}}><span style={{width:3,height:14,background:X.red,borderRadius:2}}/>Overdue Tasks</h3>
+                {overdue.length===0?(<div style={{padding:30,textAlign:"center"}}><div style={{fontSize:32,marginBottom:8}}>&#10003;</div><div style={{fontSize:14,fontWeight:600,color:X.green}}>No overdue tasks</div><div style={{fontSize:13,color:X.textDim,marginTop:4}}>All tasks are on track</div></div>)
+                :overdue.map(t=>{const ed=pD(t.end);const days=Math.ceil((now-ed)/864e5);
+                  return (<div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:`1px solid ${X.border}22`}}>
+                    <span style={{width:6,height:6,borderRadius:"50%",background:pcMap[t.project]||X.accent,flexShrink:0}}/>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:14,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.task}</div>
+                      <div style={{fontSize:12,color:X.textDim}}>{t.project} · {t.owner}</div>
                     </div>
-                    <div style={{height:5,background:X.surfaceLight,borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${avg}%`,background:pcMap[proj],borderRadius:2,opacity:0.8}}/></div>
+                    <div style={{textAlign:"right",flexShrink:0}}>
+                      <div style={{fontSize:14,fontWeight:700,fontFamily:FM,color:X.red}}>-{days}d</div>
+                      <div style={{fontSize:11,color:X.textDim,fontFamily:FM}}>{fD(t.end)}</div>
+                    </div>
                   </div>);})}
-              </div>
-              {(()=>{
+              </div>);
+            })()}
+            {(()=>{
                 const now=new Date();const in30=new Date(now.getTime()+30*864e5);
                 const upcoming=filtered.filter(t=>{if(!t.end||t.status==="已完成")return false;const ed=pD(t.end);return ed>=now&&ed<=in30;}).sort((a,b)=>pD(a.end)-pD(b.end)).slice(0,5);
                 return (<div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
@@ -403,11 +410,26 @@ function Dashboard(){
                       </div>
                     </div>);})}
                 </div>);
-              })()}
+            })()}
+          </div>
+
+          {/* Row 2 — Summary Zone: Project Progress | Status Distribution */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(340px, 1fr))",gap:16,marginTop:16}}>
+            <div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
+              <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 16px",display:"flex",alignItems:"center",gap:8}}><span style={{width:3,height:14,background:X.accent,borderRadius:2}}/>Project Progress</h3>
+              {Object.entries(projStats).map(([proj,s])=>{const avg=s.total>0?Math.round(s.pSum/s.total):0;return (
+                <div key={proj} style={{marginBottom:14}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                    <span style={{fontSize:14,fontWeight:500,display:"flex",alignItems:"center",gap:6}}><span style={{width:6,height:6,borderRadius:"50%",background:pcMap[proj]}}/>
+                      {projIcons[proj]&&<img src={projIcons[proj]} style={{width:16,height:16,borderRadius:4,objectFit:"cover"}}/>}{proj}
+                    </span>
+                    <span style={{fontFamily:FM,fontSize:12,color:X.textDim}}>{avg}%</span>
+                  </div>
+                  <div style={{height:5,background:X.surfaceLight,borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${avg}%`,background:pcMap[proj],borderRadius:2,opacity:0.8}}/></div>
+                </div>);})}
             </div>
-            <div style={{display:"flex",flexDirection:"column",gap:16}}>
-              <div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
-                <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 12px"}}>Status Distribution</h3>
+            <div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
+              <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 12px"}}>Status Distribution</h3>
                 {(()=>{const entries=Object.entries(SC).map(([k,c])=>({label:k,count:stats[k]||0,color:c.color}));const total=entries.reduce((s,e)=>s+e.count,0);if(!total)return null;
                   const cx=65,cy=65,R=56,r=38;let ca=-Math.PI/2;const g=0.04;
                   const arcs=entries.filter(e=>e.count>0).map(e=>{const a=(e.count/total)*Math.PI*2-g,sa=ca+g/2;ca+=a+g;const ea=sa+a,la=a>Math.PI?1:0;
@@ -430,25 +452,11 @@ function Dashboard(){
                       </div>))}
                     </div>
                   </div>);
-                })()}
-              </div>
-              <div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`,flex:1}}>
-                <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 12px"}}>Tasks per Project</h3>
-                {(()=>{const pc=Object.entries(projStats).map(([n,s])=>({name:n,count:s.total})).sort((a,b)=>b.count-a.count);const gm=Math.ceil(Math.max(...pc.map(p=>p.count),1)/2)*2;
-                  return (<div>{pc.map((p,i)=>(<div key={i} style={{display:"flex",alignItems:"center",marginBottom:6}}>
-                    <div title={p.name} style={{width:150,minWidth:150,textAlign:"right",paddingRight:10,fontSize:14,color:X.textSec,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</div>
-                    <div style={{flex:1,height:20,position:"relative"}}>
-                      <div style={{height:"100%",width:`${(p.count/gm)*100}%`,background:pcMap[p.name]||X.accent,borderRadius:4,display:"flex",alignItems:"center",justifyContent:"flex-end",paddingRight:6,minWidth:p.count>0?24:0}}>
-                        <span style={{fontFamily:FM,fontSize:14,fontWeight:600,color:"#fff"}}>{p.count}</span>
-                      </div>
-                    </div>
-                  </div>))}</div>);
-                })()}
-              </div>
+              })()}
             </div>
           </div>
 
-          {/* Project Overview Timeline */}
+          {/* Row 3 — Project Timeline (full width) */}
           <div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`,marginTop:16}}>
             <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 16px",display:"flex",alignItems:"center",gap:8}}><span style={{width:3,height:14,background:X.accent,borderRadius:2}}/>Project Timeline</h3>
             {(()=>{
