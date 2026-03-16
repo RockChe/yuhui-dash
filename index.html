@@ -253,6 +253,7 @@ function Dashboard(){
   const[searchQ,setSearchQ]=useState("");
   const[toast,setToast]=useState(null);const toastTimer=useRef(null);
   const showToast=useCallback((msg,type="success")=>{if(toastTimer.current)clearTimeout(toastTimer.current);setToast({msg,type,fading:false});toastTimer.current=setTimeout(()=>{setToast(prev=>prev?{...prev,fading:true}:null);setTimeout(()=>setToast(null),300);},2200);},[]);
+  const[ovHover,setOvHover]=useState(null);
   useEffect(()=>{const h=()=>setScrolled(window.scrollY>10);window.addEventListener("scroll",h,{passive:true});return()=>window.removeEventListener("scroll",h);},[]);
 
   const toggle=id=>setExpanded(p=>{const n=new Set(p);n.has(id)?n.delete(id):n.add(id);return n;});
@@ -369,30 +370,52 @@ function Dashboard(){
         {/* ── OVERVIEW ── */}
         {tab==="overview"&&(<>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(340px, 1fr))",gap:16}}>
-            <div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
-              <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 16px",display:"flex",alignItems:"center",gap:8}}><span style={{width:3,height:14,background:X.accent,borderRadius:2}}/>Project Progress</h3>
-              {Object.entries(projStats).map(([proj,s])=>{const avg=s.total>0?Math.round(s.pSum/s.total):0;return (
-                <div key={proj} style={{marginBottom:14}}>
-                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                    <span style={{fontSize:14,fontWeight:500,display:"flex",alignItems:"center",gap:6}}><span style={{width:6,height:6,borderRadius:"50%",background:pcMap[proj]}}/>
-                      {projIcons[proj]&&<img src={projIcons[proj]} style={{width:16,height:16,borderRadius:4,objectFit:"cover"}}/>}{proj}
-                    </span>
-                    <span style={{fontFamily:FM,fontSize:12,color:X.textDim}}>{avg}%</span>
-                  </div>
-                  <div style={{height:5,background:X.surfaceLight,borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${avg}%`,background:pcMap[proj],borderRadius:2,opacity:0.8}}/></div>
-                </div>);})}
+            <div style={{display:"flex",flexDirection:"column",gap:16}}>
+              <div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
+                <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 16px",display:"flex",alignItems:"center",gap:8}}><span style={{width:3,height:14,background:X.accent,borderRadius:2}}/>Project Progress</h3>
+                {Object.entries(projStats).map(([proj,s])=>{const avg=s.total>0?Math.round(s.pSum/s.total):0;return (
+                  <div key={proj} style={{marginBottom:14}}>
+                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                      <span style={{fontSize:14,fontWeight:500,display:"flex",alignItems:"center",gap:6}}><span style={{width:6,height:6,borderRadius:"50%",background:pcMap[proj]}}/>
+                        {projIcons[proj]&&<img src={projIcons[proj]} style={{width:16,height:16,borderRadius:4,objectFit:"cover"}}/>}{proj}
+                      </span>
+                      <span style={{fontFamily:FM,fontSize:12,color:X.textDim}}>{avg}%</span>
+                    </div>
+                    <div style={{height:5,background:X.surfaceLight,borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${avg}%`,background:pcMap[proj],borderRadius:2,opacity:0.8}}/></div>
+                  </div>);})}
+              </div>
+              {(()=>{
+                const now=new Date();const in30=new Date(now.getTime()+30*864e5);
+                const upcoming=filtered.filter(t=>{if(!t.end||t.status==="已完成")return false;const ed=pD(t.end);return ed>=now&&ed<=in30;}).sort((a,b)=>pD(a.end)-pD(b.end)).slice(0,5);
+                return (<div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
+                  <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 12px",display:"flex",alignItems:"center",gap:8}}><span style={{width:3,height:14,background:X.red,borderRadius:2}}/>Upcoming Deadlines</h3>
+                  {upcoming.length===0?(<div style={{padding:20,textAlign:"center",color:X.textDim,fontSize:14}}>No upcoming deadlines in next 30 days</div>)
+                  :upcoming.map(t=>{const ed=pD(t.end);const days=Math.ceil((ed-now)/864e5);const urgent=days<=7;
+                    return (<div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:`1px solid ${X.border}22`}}>
+                      <span style={{width:6,height:6,borderRadius:"50%",background:pcMap[t.project]||X.accent,flexShrink:0}}/>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:14,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.task}</div>
+                        <div style={{fontSize:12,color:X.textDim}}>{t.project} · {t.owner}</div>
+                      </div>
+                      <div style={{textAlign:"right",flexShrink:0}}>
+                        <div style={{fontSize:14,fontWeight:700,fontFamily:FM,color:urgent?X.red:X.amber}}>{days}d</div>
+                        <div style={{fontSize:11,color:X.textDim,fontFamily:FM}}>{fD(t.end)}</div>
+                      </div>
+                    </div>);})}
+                </div>);
+              })()}
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
               <div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
                 <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 12px"}}>Status Distribution</h3>
                 {(()=>{const entries=Object.entries(SC).map(([k,c])=>({label:k,count:stats[k]||0,color:c.color}));const total=entries.reduce((s,e)=>s+e.count,0);if(!total)return null;
-                  const cx=80,cy=80,R=70,r=46;let ca=-Math.PI/2;const g=0.04;
+                  const cx=65,cy=65,R=56,r=38;let ca=-Math.PI/2;const g=0.04;
                   const arcs=entries.filter(e=>e.count>0).map(e=>{const a=(e.count/total)*Math.PI*2-g,sa=ca+g/2;ca+=a+g;const ea=sa+a,la=a>Math.PI?1:0;
                     const d=`M${cx+R*Math.cos(sa)},${cy+R*Math.sin(sa)} A${R},${R} 0 ${la} 1 ${cx+R*Math.cos(ea)},${cy+R*Math.sin(ea)} L${cx+r*Math.cos(ea)},${cy+r*Math.sin(ea)} A${r},${r} 0 ${la} 0 ${cx+r*Math.cos(sa)},${cy+r*Math.sin(sa)} Z`;
                     return {...e,d,pct:Math.round(e.count/total*100)};});
-                  return (<div style={{display:"flex",alignItems:"center",gap:24}}>
-                    <div style={{position:"relative",width:160,height:160,flexShrink:0}}>
-                      <svg viewBox="0 0 160 160" width="160" height="160">{arcs.map((a,i)=><path key={i} d={a.d} fill={a.color} opacity={0.85}/>)}</svg>
+                  return (<div style={{display:"flex",alignItems:"center",gap:14}}>
+                    <div style={{position:"relative",width:130,height:130,flexShrink:0}}>
+                      <svg viewBox="0 0 130 130" width="130" height="130">{arcs.map((a,i)=><path key={i} d={a.d} fill={a.color} opacity={0.85}/>)}</svg>
                       <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",textAlign:"center"}}>
                         <div style={{fontFamily:FM,fontSize:24,fontWeight:700,lineHeight:1}}>{total}</div>
                         <div style={{fontSize:14,color:X.textDim,marginTop:2}}>Total</div>
@@ -413,9 +436,9 @@ function Dashboard(){
                 <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 12px"}}>Tasks per Project</h3>
                 {(()=>{const pc=Object.entries(projStats).map(([n,s])=>({name:n,count:s.total})).sort((a,b)=>b.count-a.count);const gm=Math.ceil(Math.max(...pc.map(p=>p.count),1)/2)*2;
                   return (<div>{pc.map((p,i)=>(<div key={i} style={{display:"flex",alignItems:"center",marginBottom:6}}>
-                    <div style={{width:110,minWidth:110,textAlign:"right",paddingRight:10,fontSize:14,color:X.textSec,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</div>
+                    <div title={p.name} style={{width:150,minWidth:150,textAlign:"right",paddingRight:10,fontSize:14,color:X.textSec,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</div>
                     <div style={{flex:1,height:20,position:"relative"}}>
-                      <div style={{height:"100%",width:`${(p.count/gm)*100}%`,background:`${X.accent}`,borderRadius:4,display:"flex",alignItems:"center",justifyContent:"flex-end",paddingRight:6,minWidth:p.count>0?24:0}}>
+                      <div style={{height:"100%",width:`${(p.count/gm)*100}%`,background:pcMap[p.name]||X.accent,borderRadius:4,display:"flex",alignItems:"center",justifyContent:"flex-end",paddingRight:6,minWidth:p.count>0?24:0}}>
                         <span style={{fontFamily:FM,fontSize:14,fontWeight:600,color:"#fff"}}>{p.count}</span>
                       </div>
                     </div>
@@ -448,7 +471,7 @@ function Dashboard(){
               return (<div>
                 <div style={{display:"flex",marginBottom:4}}>
                   <div style={{width:130,minWidth:130}}/>
-                  <div style={{flex:1,position:"relative",height:20}}>
+                  <div style={{flex:1,position:"relative",height:20,overflow:"hidden"}}>
                     {months.filter((_,i)=>i%2===0).map((m,i)=>(<div key={i} style={{position:"absolute",left:`${m.pct}%`,fontSize:14,color:X.textDim,whiteSpace:"nowrap"}}>{m.isJan?`${m.year}.`:""}{m.label}</div>))}
                   </div>
                 </div>
@@ -456,20 +479,63 @@ function Dashboard(){
                   {projBars.map((p,i)=>{
                     const l=((p.start-mn)/864e5)/td*100;
                     const w=Math.max(1,((p.end-p.start)/864e5+1)/td*100);
-                    return (<div key={p.name} style={{display:"flex",alignItems:"center",height:32,gap:8}}>
+                    const fmtD=d=>`${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}`;
+                    return (<div key={p.name} style={{display:"flex",alignItems:"center",height:32,gap:8,position:"relative"}}>
                       <div style={{width:130,minWidth:130,fontSize:14,color:X.textSec,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textAlign:"right",paddingRight:8,fontWeight:500,display:"flex",alignItems:"center",justifyContent:"flex-end",gap:5}}>
                         <span style={{width:6,height:6,borderRadius:"50%",background:p.color,flexShrink:0}}/>{p.name}
                       </div>
                       <div style={{flex:1,position:"relative",height:18}}>
                         {months.map((m,mi)=>(<div key={mi} style={{position:"absolute",left:`${m.pct}%`,top:0,bottom:0,width:1,background:X.borderLight}}/>))}
-                        <div style={{position:"absolute",left:`${l}%`,width:`${w}%`,height:"100%",borderRadius:4,background:`${p.color}20`,border:`1px solid ${p.color}30`,minWidth:6}}/>
-                        <div style={{position:"absolute",left:`${l}%`,width:`${w*p.avg/100}%`,height:"100%",borderRadius:4,background:p.color,opacity:p.avg===100?0.4:0.7,minWidth:p.avg>0?4:0}}/>
-                        {w>5&&<div style={{position:"absolute",left:`${l+w+0.5}%`,top:2,fontSize:14,fontFamily:FM,color:p.avg===100?X.green:p.color,fontWeight:600}}>{p.avg}%</div>}
+                        <div onMouseEnter={()=>setOvHover(i)} onMouseLeave={()=>setOvHover(null)} style={{position:"absolute",left:`${l}%`,width:`${w}%`,height:"100%",borderRadius:4,background:`${p.color}20`,border:`1px solid ${p.color}30`,minWidth:6,cursor:"pointer",zIndex:1}}/>
+                        <div style={{position:"absolute",left:`${l}%`,width:`${w*p.avg/100}%`,height:"100%",borderRadius:4,background:p.color,opacity:p.avg===100?0.4:0.7,minWidth:p.avg>0?4:0,pointerEvents:"none"}}/>
+                        {w>5&&<div style={{position:"absolute",left:`${l+w+0.5}%`,top:2,fontSize:14,fontFamily:FM,color:p.avg===100?X.green:p.color,fontWeight:600,pointerEvents:"none"}}>{p.avg}%</div>}
+                        {ovHover===i&&<div style={{position:"absolute",left:`${l}%`,bottom:20,background:X.surface,color:X.text,fontSize:13,padding:"6px 12px",borderRadius:8,whiteSpace:"nowrap",zIndex:30,boxShadow:"0 4px 16px rgba(0,0,0,0.12)",border:`1px solid ${X.border}`,pointerEvents:"none"}}>{fmtD(p.start)} → {fmtD(p.end)}　Progress: {p.avg}%</div>}
                       </div>
                     </div>);
                   })}
                   {todayPct>=0&&todayPct<=100&&<div style={{position:"absolute",left:`${130+8}px`,right:0,top:0,bottom:0,pointerEvents:"none"}}><div style={{position:"absolute",left:`${todayPct}%`,top:0,bottom:0,borderLeft:`2px dashed ${X.accent}`,opacity:0.5}}/></div>}
                 </div>
+              </div>);
+            })()}
+          </div>
+
+          {/* Team Workload + Overdue Tasks */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(340px, 1fr))",gap:16,marginTop:16}}>
+            {(()=>{
+              const ownerMap={};filtered.forEach(t=>{ownerMap[t.owner]=(ownerMap[t.owner]||0)+1;});
+              const owners=Object.entries(ownerMap).map(([n,c])=>({name:n,count:c})).sort((a,b)=>b.count-a.count);
+              const ownerColors=["#0d9488","#6366f1","#d97706","#dc2626","#8b5cf6","#3b82f6","#db2777","#059669","#ef4444","#f59e0b"];
+              const gm=Math.ceil(Math.max(...owners.map(o=>o.count),1)/2)*2;
+              return (<div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
+                <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 12px",display:"flex",alignItems:"center",gap:8}}><span style={{width:3,height:14,background:X.purple,borderRadius:2}}/>Team Workload</h3>
+                {owners.map((o,i)=>(<div key={o.name} style={{display:"flex",alignItems:"center",marginBottom:6}}>
+                  <div style={{width:80,minWidth:80,textAlign:"right",paddingRight:10,fontSize:14,color:X.textSec,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{o.name}</div>
+                  <div style={{flex:1,height:20,position:"relative"}}>
+                    <div style={{height:"100%",width:`${(o.count/gm)*100}%`,background:ownerColors[i%ownerColors.length],borderRadius:4,display:"flex",alignItems:"center",justifyContent:"flex-end",paddingRight:6,minWidth:o.count>0?24:0}}>
+                      <span style={{fontFamily:FM,fontSize:14,fontWeight:600,color:"#fff"}}>{o.count}</span>
+                    </div>
+                  </div>
+                </div>))}
+              </div>);
+            })()}
+            {(()=>{
+              const now=new Date();
+              const overdue=filtered.filter(t=>{if(!t.end||t.status==="已完成")return false;return pD(t.end)<now;}).sort((a,b)=>pD(a.end)-pD(b.end));
+              return (<div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
+                <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 12px",display:"flex",alignItems:"center",gap:8}}><span style={{width:3,height:14,background:X.red,borderRadius:2}}/>Overdue Tasks</h3>
+                {overdue.length===0?(<div style={{padding:30,textAlign:"center"}}><div style={{fontSize:32,marginBottom:8}}>&#10003;</div><div style={{fontSize:14,fontWeight:600,color:X.green}}>No overdue tasks</div><div style={{fontSize:13,color:X.textDim,marginTop:4}}>All tasks are on track</div></div>)
+                :overdue.map(t=>{const ed=pD(t.end);const days=Math.ceil((now-ed)/864e5);
+                  return (<div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:`1px solid ${X.border}22`}}>
+                    <span style={{width:6,height:6,borderRadius:"50%",background:pcMap[t.project]||X.accent,flexShrink:0}}/>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:14,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.task}</div>
+                      <div style={{fontSize:12,color:X.textDim}}>{t.project} · {t.owner}</div>
+                    </div>
+                    <div style={{textAlign:"right",flexShrink:0}}>
+                      <div style={{fontSize:14,fontWeight:700,fontFamily:FM,color:X.red}}>-{days}d</div>
+                      <div style={{fontSize:11,color:X.textDim,fontFamily:FM}}>{fD(t.end)}</div>
+                    </div>
+                  </div>);})}
               </div>);
             })()}
           </div>
