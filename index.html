@@ -7,10 +7,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet"/>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #F8FAFC; }
+    body { background: #1C2128; transition: background 0.3s; }
     @keyframes toastIn { from { opacity:0; transform:translateX(-50%) translateY(20px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
     @keyframes toastOut { from { opacity:1; transform:translateX(-50%) translateY(0); } to { opacity:0; transform:translateX(-50%) translateY(20px); } }
   </style>
+  <script>
+try{var t=localStorage.getItem("dash-theme");var m={"calm":"#F8FAFC","warm":"#F5F3EF","dimmed":"#1C2128","navy":"#161B22"};if(t&&m[t])document.body.style.background=m[t];}catch(e){}
+</script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -76,23 +79,48 @@ function fetchData() { return { tasks: SEED_TASKS, subtasks: SEED_SUBTASKS }; }
 function toggleSubMem(subs, id) { return subs.map(s => s.id === id ? { ...s, done: !s.done, done_date: !s.done ? new Date().toLocaleDateString("zh-TW") : null } : s); }
 function computeProgress(tid, subs) { const s = subs.filter(x => x.task_id === tid); if (!s.length) return { total:0,done:0,pct:0 }; const d = s.filter(x => x.done).length; return { total:s.length,done:d,pct:Math.round(d/s.length*100) }; }
 
-// ── 2026 Calm Light Theme (Linear / Notion / Stripe) ──
-const X = {
-  bg:"#F8FAFC", surface:"#FFFFFF", surfaceHover:"#F1F5F9", surfaceLight:"#F1F5F9",
-  accent:"#3B82F6", accentDark:"#2563EB",
-  text:"#0F172A", textSec:"#475569", textDim:"#94A3B8",
-  border:"#E2E8F0", borderLight:"#F1F5F9",
-  red:"#EF4444", amber:"#F59E0B", green:"#10B981", purple:"#8B5CF6", pink:"#EC4899",
+// ── Multi-Theme System ──
+const THEMES = {
+  calm: { key:"calm", label:"Calm Light", icon:"\u2600", isDark:false,
+    bg:"#F8FAFC", surface:"#FFFFFF", surfaceHover:"#F1F5F9", surfaceLight:"#F1F5F9",
+    accent:"#3B82F6", accentDark:"#2563EB",
+    text:"#0F172A", textSec:"#475569", textDim:"#94A3B8",
+    border:"#E2E8F0", borderLight:"#F1F5F9",
+    red:"#EF4444", amber:"#F59E0B", green:"#10B981", purple:"#8B5CF6", pink:"#EC4899",
+    shadow:"rgba(0,0,0,0.08)", shadowHeavy:"rgba(0,0,0,0.12)",
+    scrollThumb:"#CBD5E1", selectionBg:"#3B82F630" },
+  warm: { key:"warm", label:"Warm Neutral", icon:"\uD83D\uDCC4", isDark:false,
+    bg:"#F5F3EF", surface:"#FFFFFF", surfaceHover:"#EEECE8", surfaceLight:"#EEECE8",
+    accent:"#2383E2", accentDark:"#1B6EC2",
+    text:"#37352F", textSec:"#6B6B6B", textDim:"#9B9A97",
+    border:"#E3E2DE", borderLight:"#EEECE8",
+    red:"#EB5757", amber:"#CB912F", green:"#4DAB9A", purple:"#9065B0", pink:"#D44C8E",
+    shadow:"rgba(0,0,0,0.06)", shadowHeavy:"rgba(0,0,0,0.10)",
+    scrollThumb:"#C8C7C3", selectionBg:"#2383E230" },
+  dimmed: { key:"dimmed", label:"Soft Dark", icon:"\uD83C\uDF19", isDark:true,
+    bg:"#1C2128", surface:"#2D333B", surfaceHover:"#373E47", surfaceLight:"#262C36",
+    accent:"#539BF5", accentDark:"#4184E4",
+    text:"#ADBAC7", textSec:"#768390", textDim:"#545D68",
+    border:"#373E47", borderLight:"#2D333B",
+    red:"#F47067", amber:"#DAAA3F", green:"#57AB5A", purple:"#B083F0", pink:"#F47067",
+    shadow:"rgba(0,0,0,0.3)", shadowHeavy:"rgba(0,0,0,0.4)",
+    scrollThumb:"#545D68", selectionBg:"#539BF530" },
+  navy: { key:"navy", label:"Navy Muted", icon:"\uD83C\uDF0A", isDark:true,
+    bg:"#161B22", surface:"#1E242C", surfaceHover:"#272D36", surfaceLight:"#1A2028",
+    accent:"#58A6FF", accentDark:"#4090E0",
+    text:"#C9D1D9", textSec:"#8B949E", textDim:"#6E7681",
+    border:"#30363D", borderLight:"#21262D",
+    red:"#F85149", amber:"#D29922", green:"#3FB950", purple:"#BC8CFF", pink:"#F778BA",
+    shadow:"rgba(0,0,0,0.4)", shadowHeavy:"rgba(0,0,0,0.5)",
+    scrollThumb:"#6E7681", selectionBg:"#58A6FF30" },
 };
-const SC = {
-  "已完成":{color:X.green,bg:"#10B98115",icon:"✓"},
-  "進行中":{color:X.amber,bg:"#F59E0B15",icon:"▸"},
-  "待辦":{color:X.accent,bg:"#3B82F615",icon:"○"},
-  "提案中":{color:X.pink,bg:"#EC489915",icon:"◇"},
-};
-const PC = {"高":{color:X.red},"中":{color:X.amber},"低":{color:X.textDim}};
-const CC = {"商務合作":"#3B82F6","活動":"#8B5CF6","播出/開始":"#F59E0B","行銷":"#06B6D4","發行":"#10B981","市場展":"#EF4444"};
-const PJC = ["#3B82F6","#8B5CF6","#F59E0B","#EF4444","#10B981","#06B6D4","#EC4899"];
+const THEME_ORDER = ["dimmed","navy","calm","warm"];
+function mkSC(t){ const a=t.isDark?"25":"15"; return {"已完成":{color:t.green,bg:t.green+a,icon:"✓"},"進行中":{color:t.amber,bg:t.amber+a,icon:"▸"},"待辦":{color:t.accent,bg:t.accent+a,icon:"○"},"提案中":{color:t.pink,bg:t.pink+a,icon:"◇"}}; }
+function mkPC(t){ return {"高":{color:t.red},"中":{color:t.amber},"低":{color:t.textDim}}; }
+function mkCC(t){ return {"商務合作":t.accent,"活動":t.purple,"播出/開始":t.amber,"行銷":"#06B6D4","發行":t.green,"市場展":t.red}; }
+function mkPJC(t){ return [t.accent,t.purple,t.amber,t.red,t.green,"#06B6D4",t.pink]; }
+let X = THEMES.dimmed;
+let SC = mkSC(X), PC = mkPC(X), CC = mkCC(X), PJC = mkPJC(X);
 const F = "'Noto Sans TC',-apple-system,BlinkMacSystemFont,sans-serif";
 const FM = "'JetBrains Mono','SF Mono',monospace";
 function pD(s){if(!s)return null;const[y,m,d]=s.split("/").map(Number);return new Date(y,m-1,d);}
@@ -194,7 +222,7 @@ function GanttTimeline({tasks,subtasks,fp,fs,fpr}){
                 {r.task.progress>0&&<div style={{position:"absolute",left:`${r.l}%`,width:`${r.w*r.task.progress/100}%`,top:8,height:20,borderRadius:10,background:bc,opacity:dn?0.4:0.7,minWidth:4}}/>}
                 {r.task.progress>0&&r.task.progress<100&&r.w>3&&<div style={{position:"absolute",left:`${r.l+r.w*r.task.progress/100+0.4}%`,top:11,fontSize:14,fontFamily:FM,color:bc,fontWeight:600}}>{r.task.progress}%</div>}
                 {dn&&r.w>3&&<div style={{position:"absolute",left:`${r.l+r.w/2}%`,top:11,fontSize:14,fontFamily:FM,color:X.green,fontWeight:700,transform:"translateX(-50%)"}}>100%</div>}
-                {hv&&<div style={{position:"absolute",left:`${Math.min(Math.max(r.l,2),65)}%`,bottom:34,background:X.surfaceLight,color:X.text,fontSize:14,padding:"6px 12px",borderRadius:8,whiteSpace:"nowrap",maxWidth:"90vw",overflow:"hidden",textOverflow:"ellipsis",zIndex:30,boxShadow:"0 4px 16px rgba(0,0,0,0.12)",border:`1px solid ${X.border}`}}>{fD(r.task.start)} → {fD(r.task.end)}　{r.task.duration}d　{r.task.progress}%</div>}
+                {hv&&<div style={{position:"absolute",left:`${Math.min(Math.max(r.l,2),65)}%`,bottom:34,background:X.surfaceLight,color:X.text,fontSize:14,padding:"6px 12px",borderRadius:8,whiteSpace:"nowrap",maxWidth:"90vw",overflow:"hidden",textOverflow:"ellipsis",zIndex:30,boxShadow:`0 4px 16px ${X.shadowHeavy}`,border:`1px solid ${X.border}`}}>{fD(r.task.start)} → {fD(r.task.end)}　{r.task.duration}d　{r.task.progress}%</div>}
               </div>);
             })}
           </div>
@@ -254,6 +282,10 @@ function Dashboard(){
   const[toast,setToast]=useState(null);const toastTimer=useRef(null);
   const showToast=useCallback((msg,type="success")=>{if(toastTimer.current)clearTimeout(toastTimer.current);setToast({msg,type,fading:false});toastTimer.current=setTimeout(()=>{setToast(prev=>prev?{...prev,fading:true}:null);setTimeout(()=>setToast(null),300);},2200);},[]);
   const[ovHover,setOvHover]=useState(null);
+  const[themeKey,setThemeKey]=useState(()=>{try{return localStorage.getItem("dash-theme")||"dimmed";}catch{return "dimmed";}});
+  X=THEMES[themeKey]||THEMES.dimmed; SC=mkSC(X); PC=mkPC(X); CC=mkCC(X); PJC=mkPJC(X);
+  const cycleTheme=useCallback(()=>{setThemeKey(p=>{const i=THEME_ORDER.indexOf(p);return THEME_ORDER[(i+1)%THEME_ORDER.length];});},[]);
+  useEffect(()=>{try{localStorage.setItem("dash-theme",themeKey);}catch{}document.body.style.background=X.bg;},[themeKey]);
   useEffect(()=>{const h=()=>setScrolled(window.scrollY>10);window.addEventListener("scroll",h,{passive:true});return()=>window.removeEventListener("scroll",h);},[]);
 
   const toggle=id=>setExpanded(p=>{const n=new Set(p);n.has(id)?n.delete(id):n.add(id);return n;});
@@ -294,13 +326,13 @@ function Dashboard(){
   const iS2={fontFamily:F,fontSize:14,padding:"6px 10px",borderRadius:8,border:`1px solid ${X.border}`,outline:"none",color:X.text,background:X.surface,width:"100%"};
 
   return (
-    <div style={{minHeight:"100vh",background:X.bg,fontFamily:F,color:X.text}}>
+    <div style={{minHeight:"100vh",background:X.bg,fontFamily:F,color:X.text,transition:"background-color 0.3s,color 0.3s"}}>
       <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet"/>
-      <style>{`::selection{background:#3B82F630} *{box-sizing:border-box} ::-webkit-scrollbar{width:6px;height:6px} ::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px} ::-webkit-scrollbar-track{background:transparent} input,select,button{font-family:'Noto Sans TC',-apple-system,sans-serif}`}</style>
+      <style>{`::selection{background:${X.selectionBg}} *{box-sizing:border-box} ::-webkit-scrollbar{width:6px;height:6px} ::-webkit-scrollbar-thumb{background:${X.scrollThumb};border-radius:3px} ::-webkit-scrollbar-track{background:transparent} input,select,button{font-family:'Noto Sans TC',-apple-system,sans-serif}`}</style>
       <input type="file" accept="image/*" ref={fileRef} style={{display:"none"}} onChange={e=>{if(uploadTarget)handleIconUpload(e,uploadTarget);setUploadTarget(null);}}/>
 
       {/* Header */}
-      <div style={{borderBottom:`1px solid ${X.border}`,padding:"16px 32px",position:"sticky",top:0,zIndex:50,background:X.surface,boxShadow:scrolled?"0 2px 8px rgba(0,0,0,0.08)":"none",transition:"box-shadow 0.2s"}}>
+      <div style={{borderBottom:`1px solid ${X.border}`,padding:"16px 32px",position:"sticky",top:0,zIndex:50,background:X.surface,boxShadow:scrolled?`0 2px 8px ${X.shadow}`:"none",transition:"box-shadow 0.2s"}}>
         <div style={{maxWidth:1400,margin:"0 auto",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
             <div style={{width:32,height:32,borderRadius:"50%",background:X.accent,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:17,color:"#fff"}}>P</div>
@@ -312,6 +344,10 @@ function Dashboard(){
               <input value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="Search tasks..." style={{fontFamily:F,fontSize:14,padding:"8px 32px 8px 34px",borderRadius:20,border:`1px solid ${X.border}`,outline:"none",background:X.surfaceLight,color:X.text,width:220,transition:"border-color 0.2s"}} onFocus={e=>e.target.style.borderColor=X.accent} onBlur={e=>e.target.style.borderColor=X.border}/>
               {searchQ&&<button onClick={()=>setSearchQ("")} style={{position:"absolute",right:8,background:"transparent",border:"none",color:X.textDim,fontSize:16,cursor:"pointer",padding:"2px 4px",lineHeight:1}}>×</button>}
             </div>
+            <button onClick={cycleTheme} title={THEMES[themeKey].label}
+              style={{width:36,height:36,borderRadius:10,border:`1px solid ${X.border}`,background:X.surfaceLight,color:X.text,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"border-color 0.2s"}}
+              onMouseEnter={e=>e.currentTarget.style.borderColor=X.accent} onMouseLeave={e=>e.currentTarget.style.borderColor=X.border}
+            >{THEMES[themeKey].icon}</button>
             <div style={{width:1,height:28,background:X.border}}/>
             <div style={{textAlign:"right"}}>
               <div style={{fontSize:14,color:X.textDim,fontFamily:FM}}>Overall</div>
@@ -497,7 +533,7 @@ function Dashboard(){
                         <div onMouseEnter={()=>setOvHover(i)} onMouseLeave={()=>setOvHover(null)} style={{position:"absolute",left:`${l}%`,width:`${w}%`,height:"100%",borderRadius:4,background:`${p.color}20`,border:`1px solid ${p.color}30`,minWidth:6,cursor:"pointer",zIndex:1}}/>
                         <div style={{position:"absolute",left:`${l}%`,width:`${w*p.avg/100}%`,height:"100%",borderRadius:4,background:p.color,opacity:p.avg===100?0.4:0.7,minWidth:p.avg>0?4:0,pointerEvents:"none"}}/>
                         {w>5&&<div style={{position:"absolute",left:`${l+w+0.5}%`,top:2,fontSize:14,fontFamily:FM,color:p.avg===100?X.green:p.color,fontWeight:600,pointerEvents:"none"}}>{p.avg}%</div>}
-                        {ovHover===i&&<div style={{position:"absolute",left:`${l}%`,bottom:20,background:X.surface,color:X.text,fontSize:13,padding:"6px 12px",borderRadius:8,whiteSpace:"nowrap",zIndex:30,boxShadow:"0 4px 16px rgba(0,0,0,0.12)",border:`1px solid ${X.border}`,pointerEvents:"none"}}>{fmtD(p.start)} → {fmtD(p.end)}　Progress: {p.avg}%</div>}
+                        {ovHover===i&&<div style={{position:"absolute",left:`${l}%`,bottom:20,background:X.surface,color:X.text,fontSize:13,padding:"6px 12px",borderRadius:8,whiteSpace:"nowrap",zIndex:30,boxShadow:`0 4px 16px ${X.shadowHeavy}`,border:`1px solid ${X.border}`,pointerEvents:"none"}}>{fmtD(p.start)} → {fmtD(p.end)}　Progress: {p.avg}%</div>}
                       </div>
                     </div>);
                   })}
@@ -783,7 +819,7 @@ function Dashboard(){
           </div>
         )}
       </div>
-      {toast&&<div style={{position:"fixed",bottom:32,left:"50%",transform:"translateX(-50%)",zIndex:100,animation:toast.fading?"toastOut 0.3s ease forwards":"toastIn 0.3s ease",display:"flex",alignItems:"center",gap:10,background:X.surface,borderRadius:12,padding:"12px 20px",boxShadow:"0 4px 20px rgba(0,0,0,0.12)",border:`1px solid ${X.border}`,maxWidth:"90vw"}}>
+      {toast&&<div style={{position:"fixed",bottom:32,left:"50%",transform:"translateX(-50%)",zIndex:100,animation:toast.fading?"toastOut 0.3s ease forwards":"toastIn 0.3s ease",display:"flex",alignItems:"center",gap:10,background:X.surface,borderRadius:12,padding:"12px 20px",boxShadow:`0 4px 20px ${X.shadowHeavy}`,border:`1px solid ${X.border}`,maxWidth:"90vw"}}>
         <div style={{width:4,height:24,borderRadius:2,background:toast.type==="error"?X.red:toast.type==="warn"?X.amber:X.green}}/>
         <span style={{fontSize:14,fontWeight:500,color:X.text,whiteSpace:"nowrap"}}>{toast.msg}</span>
       </div>}
