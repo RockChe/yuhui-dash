@@ -19,7 +19,7 @@
   <div id="root"></div>
   <script type="text/babel">
 /*
-  專案管理 Dashboard — X (Twitter) Dark Theme
+  專案管理 Dashboard — Silicon Valley Dark Theme
   CC: Supabase 整合指引見檔案底部註解
 */
 const { useState, useEffect, useMemo, useRef, useCallback } = React;
@@ -76,23 +76,23 @@ function fetchData() { return { tasks: SEED_TASKS, subtasks: SEED_SUBTASKS }; }
 function toggleSubMem(subs, id) { return subs.map(s => s.id === id ? { ...s, done: !s.done, done_date: !s.done ? new Date().toLocaleDateString("zh-TW") : null } : s); }
 function computeProgress(tid, subs) { const s = subs.filter(x => x.task_id === tid); if (!s.length) return { total:0,done:0,pct:0 }; const d = s.filter(x => x.done).length; return { total:s.length,done:d,pct:Math.round(d/s.length*100) }; }
 
-// ── X/Twitter Theme ──
+// ── Silicon Valley Dark Theme (Linear / Vercel / Slate) ──
 const X = {
-  bg:"#f0f2f5", surface:"#ffffff", surfaceHover:"#f9fafb", surfaceLight:"#f7f8fa",
-  accent:"#0d9488", accentDark:"#0f766e",
-  text:"#1a1f2e", textSec:"#4b5563", textDim:"#9ca3af",
-  border:"#e5e7eb", borderLight:"#f3f4f6",
-  red:"#dc2626", amber:"#d97706", green:"#059669", purple:"#8b5cf6", pink:"#db2777",
+  bg:"#0B0F1A", surface:"#111827", surfaceHover:"#1F2937", surfaceLight:"#1A2332",
+  accent:"#818CF8", accentDark:"#6366F1",
+  text:"#E2E8F0", textSec:"#94A3B8", textDim:"#64748B",
+  border:"#1E293B", borderLight:"#334155",
+  red:"#F87171", amber:"#FBBF24", green:"#34D399", purple:"#A78BFA", pink:"#F472B6",
 };
 const SC = {
-  "已完成":{color:X.green,bg:"#05966915",icon:"✓"},
-  "進行中":{color:X.amber,bg:"#d9770615",icon:"▸"},
-  "待辦":{color:"#6366f1",bg:"#6366f115",icon:"○"},
-  "提案中":{color:X.pink,bg:"#db277715",icon:"◇"},
+  "已完成":{color:X.green,bg:"#34D39915",icon:"✓"},
+  "進行中":{color:X.amber,bg:"#FBBF2415",icon:"▸"},
+  "待辦":{color:X.accent,bg:"#818CF815",icon:"○"},
+  "提案中":{color:X.pink,bg:"#F472B615",icon:"◇"},
 };
-const PC = {"高":{color:X.red},"中":{color:X.amber},"低":{color:X.textSec}};
-const CC = {"商務合作":"#3b82f6","活動":"#8b5cf6","播出/開始":"#f59e0b","行銷":"#06b6d4","發行":"#10b981","市場展":"#ef4444"};
-const PJC = ["#0d9488","#6366f1","#d97706","#dc2626","#8b5cf6","#3b82f6","#db2777"];
+const PC = {"高":{color:X.red},"中":{color:X.amber},"低":{color:X.textDim}};
+const CC = {"商務合作":"#60A5FA","活動":"#A78BFA","播出/開始":"#FBBF24","行銷":"#22D3EE","發行":"#34D399","市場展":"#F87171"};
+const PJC = ["#818CF8","#A78BFA","#FBBF24","#F87171","#34D399","#60A5FA","#F472B6"];
 const F = "'Noto Sans TC',-apple-system,BlinkMacSystemFont,sans-serif";
 const FM = "'JetBrains Mono','SF Mono',monospace";
 function pD(s){if(!s)return null;const[y,m,d]=s.split("/").map(Number);return new Date(y,m-1,d);}
@@ -194,7 +194,7 @@ function GanttTimeline({tasks,subtasks,fp,fs,fpr}){
                 {r.task.progress>0&&<div style={{position:"absolute",left:`${r.l}%`,width:`${r.w*r.task.progress/100}%`,top:8,height:20,borderRadius:10,background:bc,opacity:dn?0.4:0.7,minWidth:4}}/>}
                 {r.task.progress>0&&r.task.progress<100&&r.w>3&&<div style={{position:"absolute",left:`${r.l+r.w*r.task.progress/100+0.4}%`,top:11,fontSize:14,fontFamily:FM,color:bc,fontWeight:600}}>{r.task.progress}%</div>}
                 {dn&&r.w>3&&<div style={{position:"absolute",left:`${r.l+r.w/2}%`,top:11,fontSize:14,fontFamily:FM,color:X.green,fontWeight:700,transform:"translateX(-50%)"}}>100%</div>}
-                {hv&&<div style={{position:"absolute",left:`${Math.min(Math.max(r.l,2),65)}%`,bottom:34,background:X.surfaceLight,color:X.text,fontSize:14,padding:"6px 12px",borderRadius:8,whiteSpace:"nowrap",maxWidth:"90vw",overflow:"hidden",textOverflow:"ellipsis",zIndex:30,boxShadow:"0 4px 16px rgba(0,0,0,0.5)",border:`1px solid ${X.border}`}}>{fD(r.task.start)} → {fD(r.task.end)}　{r.task.duration}d　{r.task.progress}%</div>}
+                {hv&&<div style={{position:"absolute",left:`${Math.min(Math.max(r.l,2),65)}%`,bottom:34,background:X.surfaceLight,color:X.text,fontSize:14,padding:"6px 12px",borderRadius:8,whiteSpace:"nowrap",maxWidth:"90vw",overflow:"hidden",textOverflow:"ellipsis",zIndex:30,boxShadow:"0 4px 16px rgba(0,0,0,0.7)",border:`1px solid ${X.border}`}}>{fD(r.task.start)} → {fD(r.task.end)}　{r.task.duration}d　{r.task.progress}%</div>}
               </div>);
             })}
           </div>
@@ -296,7 +296,7 @@ function Dashboard(){
   return (
     <div style={{minHeight:"100vh",background:X.bg,fontFamily:F,color:X.text}}>
       <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet"/>
-      <style>{`::selection{background:#0d948830} *{box-sizing:border-box} ::-webkit-scrollbar{width:6px;height:6px} ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px} ::-webkit-scrollbar-track{background:transparent} input,select,button{font-family:'Noto Sans TC',-apple-system,sans-serif}`}</style>
+      <style>{`::selection{background:#818CF830} *{box-sizing:border-box} ::-webkit-scrollbar{width:6px;height:6px} ::-webkit-scrollbar-thumb{background:#334155;border-radius:3px} ::-webkit-scrollbar-track{background:transparent} input,select,button{font-family:'Noto Sans TC',-apple-system,sans-serif}`}</style>
       <input type="file" accept="image/*" ref={fileRef} style={{display:"none"}} onChange={e=>{if(uploadTarget)handleIconUpload(e,uploadTarget);setUploadTarget(null);}}/>
 
       {/* Header */}
