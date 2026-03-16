@@ -107,10 +107,11 @@ let X = THEMES.dimmed;
 let SC = mkSC(X), PC = mkPC(X), CC = mkCC(X), PJC = mkPJC(X);
 const F = "'Noto Sans TC',-apple-system,BlinkMacSystemFont,sans-serif";
 const FM = "'JetBrains Mono','SF Mono',monospace";
-function pD(s){if(!s)return null;const[y,m,d]=s.split("/").map(Number);return new Date(y,m-1,d);}
+function pD(s){if(!s)return null;const p=s.split(" ");const[y,m,d]=p[0].split("/").map(Number);if(p[1]){const[hh,mm]=(p[1]).split(":").map(Number);return new Date(y,m-1,d,hh||0,mm||0);}return new Date(y,m-1,d);}
 function fD(s){return s?s.replace(/\//g,"."):"\u2014";}
-function toISO(s){if(!s)return"";return s.replace(/\//g,"-");}
-function fromISO(s){if(!s)return"";return s.replace(/-/g,"/");}
+function toISO(s){if(!s)return"";const p=s.split(" ");return p[0].replace(/\//g,"-");}
+function fromISO(s){if(!s)return"";const p=s.split(" ");return p[0].replace(/-/g,"/");}
+function getIS2(){return{fontFamily:F,fontSize:14,padding:"6px 10px",borderRadius:8,border:`1px solid ${X.border}`,outline:"none",color:X.text,background:X.surface,width:"100%"};}
 
 // ── Mini Gantt (for cards) ──
 function MiniGantt({tasks,subtasks,height=28,color}) {
@@ -140,8 +141,48 @@ function EditableCell({value,onSave,options=null,isDate=false,style={}}){
   const commit=()=>{setEd(false);const v=isDate?fromISO(dr):dr;if(v!==value)onSave(v);};
   const cancel=()=>{setEd(false);setDr(isDate?toISO(value):value);};
   if(!ed)return (<span onClick={start} style={{cursor:"text",borderBottom:"1px dashed transparent",overflow:"hidden",textOverflow:"ellipsis",...style}} onMouseEnter={e=>e.target.style.borderBottomColor=X.borderLight} onMouseLeave={e=>e.target.style.borderBottomColor="transparent"}>{value||"\u2014"}</span>);
+  if(ed&&isDate)return(<CalendarPicker value={value||""} onChange={v=>{onSave(v);setEd(false);}} autoOpen onClose={()=>setEd(false)} style={{minWidth:110,...style}}/>);
   if(options) return (<select ref={ref} value={dr} onChange={e=>setDr(e.target.value)} onBlur={commit} onClick={e=>e.stopPropagation()} onKeyDown={e=>{if(e.key==="Escape")cancel();}} style={{fontFamily:F,fontSize:14,padding:"2px 4px",borderRadius:4,border:`1px solid ${X.accent}`,outline:"none",background:X.surface,color:X.text,...style}}>{options.map(o=><option key={o} value={o}>{o}</option>)}</select>);
   return (<input ref={ref} type={isDate?"date":"text"} value={dr} onChange={e=>setDr(e.target.value)} onBlur={commit} onClick={e=>e.stopPropagation()} onKeyDown={e=>{if(e.key==="Enter")commit();if(e.key==="Escape")cancel();}} style={{fontFamily:F,fontSize:14,padding:"2px 4px",borderRadius:4,border:`1px solid ${X.accent}`,outline:"none",background:X.surface,color:X.text,width:"100%",...style}}/>);
+}
+
+function CalendarPicker({value,onChange,showTime=false,autoOpen=false,onClose,style={}}){
+  const[open,setOpen]=useState(autoOpen);
+  const[viewDate,setViewDate]=useState(()=>{if(value){const d=pD(value.split(" ")[0]);if(d&&!isNaN(d))return new Date(d.getFullYear(),d.getMonth(),1);}return new Date(new Date().getFullYear(),new Date().getMonth(),1);});
+  const[timeVal,setTimeVal]=useState(()=>value&&value.includes(" ")?value.split(" ")[1]:"09:00");
+  const ref=useRef(null);
+  useEffect(()=>{if(!open)return;const h=e=>{if(ref.current&&!ref.current.contains(e.target)){setOpen(false);if(onClose)onClose();}};document.addEventListener("mousedown",h);return()=>document.removeEventListener("mousedown",h);},[open,onClose]);
+  const y=viewDate.getFullYear(),mo=viewDate.getMonth();const firstDay=new Date(y,mo,1).getDay();const dim=new Date(y,mo+1,0).getDate();const prevDim=new Date(y,mo,0).getDate();
+  const cells=[];for(let i=firstDay-1;i>=0;i--)cells.push({d:prevDim-i,c:false});for(let i=1;i<=dim;i++)cells.push({d:i,c:true});while(cells.length<42)cells.push({d:cells.length-firstDay-dim+1,c:false});
+  const selStr=value?value.split(" ")[0]:"";const now=new Date();const todayStr=`${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,"0")}/${String(now.getDate()).padStart(2,"0")}`;
+  const pick=day=>{const ds=`${y}/${String(mo+1).padStart(2,"0")}/${String(day).padStart(2,"0")}`;if(showTime){onChange(ds+" "+timeVal);}else{onChange(ds);setOpen(false);if(onClose)onClose();}};
+  const confirmT=()=>{const ds=selStr||`${y}/${String(mo+1).padStart(2,"0")}/${String(now.getDate()).padStart(2,"0")}`;onChange(ds+" "+timeVal);setOpen(false);if(onClose)onClose();};
+  const cIS2=getIS2();
+  return(<div ref={ref} style={{position:"relative",...style}}>
+    <div onClick={()=>setOpen(!open)} style={{...cIS2,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",gap:6}}>
+      <span style={{color:value?X.text:X.textDim,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{value?fD(value):"Select date"}</span>
+      <span style={{fontSize:11,color:X.textDim,flexShrink:0}}>📅</span>
+    </div>
+    {open&&<div onClick={e=>e.stopPropagation()} style={{position:"absolute",top:"100%",left:0,marginTop:4,background:X.surface,border:`1px solid ${X.border}`,borderRadius:12,padding:12,zIndex:60,boxShadow:`0 8px 24px ${X.shadowHeavy}`,width:264,userSelect:"none"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+        <button onClick={()=>setViewDate(new Date(y,mo-1,1))} style={{background:"transparent",border:"none",cursor:"pointer",fontSize:18,color:X.textSec,padding:"2px 8px",lineHeight:1}}>‹</button>
+        <span style={{fontSize:14,fontWeight:600,color:X.text}}>{y}年 {mo+1}月</span>
+        <button onClick={()=>setViewDate(new Date(y,mo+1,1))} style={{background:"transparent",border:"none",cursor:"pointer",fontSize:18,color:X.textSec,padding:"2px 8px",lineHeight:1}}>›</button>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1,marginBottom:2}}>
+        {["日","一","二","三","四","五","六"].map(d=><div key={d} style={{textAlign:"center",fontSize:11,color:X.textDim,padding:"4px 0",fontWeight:500}}>{d}</div>)}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1}}>
+        {cells.map((cell,i)=>{const cs=cell.c?`${y}/${String(mo+1).padStart(2,"0")}/${String(cell.d).padStart(2,"0")}`:"";const isSel=cell.c&&cs===selStr;const isT=cell.c&&cs===todayStr;
+          return <div key={i} onClick={cell.c?()=>pick(cell.d):undefined} style={{textAlign:"center",padding:"5px 0",fontSize:13,borderRadius:6,cursor:cell.c?"pointer":"default",color:!cell.c?X.textDim:isSel?"#fff":isT?X.accent:X.text,background:isSel?X.accent:isT?`${X.accent}15`:"transparent",fontWeight:isSel||isT?600:400,transition:"background 0.15s"}} onMouseEnter={e=>{if(cell.c&&!isSel)e.currentTarget.style.background=X.surfaceHover;}} onMouseLeave={e=>{if(cell.c&&!isSel)e.currentTarget.style.background=isT?`${X.accent}15`:"transparent";}}>{cell.d}</div>;})}
+      </div>
+      {showTime&&<div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${X.border}`,display:"flex",alignItems:"center",gap:8}}>
+        <span style={{fontSize:12,color:X.textDim}}>Time</span>
+        <input type="time" value={timeVal} onChange={e=>setTimeVal(e.target.value)} onClick={e=>e.stopPropagation()} style={{...cIS2,flex:1,padding:"4px 8px"}}/>
+        <button onClick={confirmT} style={{background:X.accent,color:"#fff",border:"none",borderRadius:8,padding:"4px 12px",fontSize:13,fontWeight:600,cursor:"pointer"}}>OK</button>
+      </div>}
+    </div>}
+  </div>);
 }
 
 // ── Gantt Timeline ──
@@ -259,6 +300,8 @@ function Dashboard(){
   const[archived,setArchived]=useState(new Set());const[showArch,setShowArch]=useState(false);
   const[showAdd,setShowAdd]=useState(false);const[showTblAdd,setShowTblAdd]=useState(false);
   const[draft,setDraft]=useState({task:"",project:"",start:"",end:"",owner:"—",category:"活動",priority:"中",notes:""});
+  const[subDraft,setSubDraft]=useState({name:"",owner:"—"});
+  const[showSubAdd,setShowSubAdd]=useState(null);
   const[projIcons,setProjIcons]=useState({});
   const fileRef=useRef(null);const[uploadTarget,setUploadTarget]=useState(null);
   const[scrolled,setScrolled]=useState(false);
@@ -283,6 +326,8 @@ function Dashboard(){
     setAllT(p=>[...p,{id:`T${String(mx+1).padStart(2,"0")}`,project:proj,status:"待辦",category:"活動",priority:"中",owner:"—",notes:"",sort_order:ms+1,...data}]);showToast("Task created","success");
   },[allT,showToast]);
   const deleteTask=useCallback(id=>{setAllT(p=>p.filter(t=>t.id!==id));setAllS(p=>p.filter(s=>s.task_id!==id));showToast("Task deleted","error");},[showToast]);
+  const addSub=useCallback((taskId,data)=>{const mx=allS.reduce((m,s)=>{const n=parseInt(s.id.replace("S",""));return n>m?n:m;},0);setAllS(p=>[...p,{id:`S${String(mx+1).padStart(2,"0")}`,task_id:taskId,done:false,done_date:null,notes:"",...data}]);showToast("Subtask added","success");},[allS,showToast]);
+  const deleteSub=useCallback(id=>{setAllS(p=>p.filter(s=>s.id!==id));showToast("Subtask deleted","error");},[showToast]);
   const archiveProj=useCallback(p=>{setArchived(prev=>{const n=new Set(prev);n.add(p);return n;});setSelProj(null);showToast("Project archived","warn");},[showToast]);
   const unarchiveProj=useCallback(p=>{setArchived(prev=>{const n=new Set(prev);n.delete(p);return n;});showToast("Project unarchived","success");},[showToast]);
   const deleteProj=useCallback(p=>{const ids=allT.filter(t=>t.project===p).map(t=>t.id);setAllT(prev=>prev.filter(t=>t.project!==p));setAllS(prev=>prev.filter(s=>!ids.includes(s.task_id)));setSelProj(null);showToast("Project deleted","error");},[allT,showToast]);
@@ -307,7 +352,7 @@ function Dashboard(){
 
   const handleImport=e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=ev=>{const imported=parseCSV(ev.target.result);if(imported.length){const mx=allT.reduce((m,t)=>{const n=parseInt(t.id.replace("T",""));return n>m?n:m;},0);const ms=allT.reduce((m,t)=>t.sort_order>m?t.sort_order:m,0);const withIds=imported.map((t,i)=>({...t,id:t.id||`T${String(mx+1+i).padStart(2,"0")}`,sort_order:ms+1+i}));setAllT(p=>[...p,...withIds]);showToast(`${imported.length} tasks imported`,"success");}};reader.readAsText(file);e.target.value="";};
 
-  const iS2={fontFamily:F,fontSize:14,padding:"6px 10px",borderRadius:8,border:`1px solid ${X.border}`,outline:"none",color:X.text,background:X.surface,width:"100%"};
+  const iS2=getIS2();
 
   return (
     <div style={{minHeight:"100vh",background:X.bg,fontFamily:F,color:X.text,transition:"background-color 0.3s,color 0.3s"}}>
@@ -396,6 +441,57 @@ function Dashboard(){
 
         {/* ── OVERVIEW ── */}
         {tab==="overview"&&(<>
+          {/* Project Timeline (moved to top) */}
+          <div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`,marginBottom:16}}>
+            <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 16px",display:"flex",alignItems:"center",gap:8}}><span style={{width:3,height:14,background:X.accent,borderRadius:2}}/>Project Timeline</h3>
+            {(()=>{
+              const projList=[...new Set(twp.map(d=>d.project))];
+              const projBars=projList.map(pn=>{
+                const pt=twp.filter(d=>d.project===pn&&d.start&&d.end);
+                if(!pt.length) return null;
+                const dates=pt.flatMap(t=>[pD(t.start),pD(t.end)]);
+                const s=new Date(Math.min(...dates)),e=new Date(Math.max(...dates));
+                const avg=Math.round(twp.filter(d=>d.project===pn).reduce((sum,t)=>sum+t.progress,0)/twp.filter(d=>d.project===pn).length);
+                return {name:pn,start:s,end:e,avg,color:pcMap[pn]||X.accent};
+              }).filter(Boolean);
+              if(!projBars.length) return (<div style={{padding:40,textAlign:"center",color:X.textDim}}><div style={{fontSize:32,marginBottom:8,opacity:0.3}}>📅</div><div style={{fontSize:14}}>No timeline data available</div></div>);
+              const allDates=projBars.flatMap(p=>[p.start,p.end]);
+              const mn=new Date(Math.min(...allDates)),mx=new Date(Math.max(...allDates));
+              const td=(mx-mn)/864e5+1;
+              const todayPct=((new Date()-mn)/864e5)/td*100;
+              const months=[];let cur=new Date(mn.getFullYear(),mn.getMonth(),1);
+              while(cur<=mx){const off=Math.max(0,(cur-mn)/864e5);months.push({label:`${cur.getMonth()+1}月`,year:cur.getFullYear(),isJan:cur.getMonth()===0,pct:(off/td)*100});cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);}
+              return (<div>
+                <div style={{display:"flex",marginBottom:4}}>
+                  <div style={{width:130,minWidth:130}}/>
+                  <div style={{flex:1,position:"relative",height:20,overflow:"hidden"}}>
+                    {months.filter((_,i)=>i%2===0).map((m,i)=>(<div key={i} style={{position:"absolute",left:`${m.pct}%`,fontSize:14,color:X.textDim,whiteSpace:"nowrap"}}>{m.isJan?`${m.year}.`:""}{m.label}</div>))}
+                  </div>
+                </div>
+                <div style={{position:"relative"}}>
+                  {projBars.map((p,i)=>{
+                    const l=((p.start-mn)/864e5)/td*100;
+                    const w=Math.max(1,((p.end-p.start)/864e5+1)/td*100);
+                    const fmtD=d=>`${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}`;
+                    return (<div key={p.name} style={{display:"flex",alignItems:"center",height:32,gap:8,position:"relative"}}>
+                      <div style={{width:130,minWidth:130,fontSize:14,color:X.textSec,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textAlign:"right",paddingRight:8,fontWeight:500,display:"flex",alignItems:"center",justifyContent:"flex-end",gap:5}}>
+                        <span style={{width:6,height:6,borderRadius:"50%",background:p.color,flexShrink:0}}/>{p.name}
+                      </div>
+                      <div style={{flex:1,position:"relative",height:18}}>
+                        {months.map((m,mi)=>(<div key={mi} style={{position:"absolute",left:`${m.pct}%`,top:0,bottom:0,width:1,background:X.borderLight}}/>))}
+                        <div onMouseEnter={()=>setOvHover(i)} onMouseLeave={()=>setOvHover(null)} style={{position:"absolute",left:`${l}%`,width:`${w}%`,height:"100%",borderRadius:4,background:`${p.color}20`,border:`1px solid ${p.color}30`,minWidth:6,cursor:"pointer",zIndex:1}}/>
+                        <div style={{position:"absolute",left:`${l}%`,width:`${w*p.avg/100}%`,height:"100%",borderRadius:4,background:p.color,opacity:p.avg===100?0.4:0.7,minWidth:p.avg>0?4:0,pointerEvents:"none"}}/>
+                        {w>5&&<div style={{position:"absolute",left:`${l+w+0.5}%`,top:2,fontSize:14,fontFamily:FM,color:p.avg===100?X.green:p.color,fontWeight:600,pointerEvents:"none"}}>{p.avg}%</div>}
+                        {ovHover===i&&<div style={{position:"absolute",left:`${l}%`,bottom:20,background:X.surface,color:X.text,fontSize:13,padding:"6px 12px",borderRadius:8,whiteSpace:"nowrap",zIndex:30,boxShadow:`0 4px 16px ${X.shadowHeavy}`,border:`1px solid ${X.border}`,pointerEvents:"none"}}>{fmtD(p.start)} → {fmtD(p.end)}　Progress: {p.avg}%</div>}
+                      </div>
+                    </div>);
+                  })}
+                  {todayPct>=0&&todayPct<=100&&<div style={{position:"absolute",left:`${130+8}px`,right:0,top:0,bottom:0,pointerEvents:"none"}}><div style={{position:"absolute",left:`${todayPct}%`,top:0,bottom:0,borderLeft:`2px dashed ${X.accent}`,opacity:0.5}}/></div>}
+                </div>
+              </div>);
+            })()}
+          </div>
+
           {/* Row 1 — Action Zone: Overdue Tasks | Upcoming Deadlines */}
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(340px, 1fr))",gap:16}}>
             {(()=>{
@@ -455,16 +551,16 @@ function Dashboard(){
                   <div style={{height:5,background:X.surfaceLight,borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${avg}%`,background:pcMap[proj],borderRadius:2,opacity:0.8}}/></div>
                 </div>);})}
             </div>
-            <div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
-              <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 12px"}}>Status Distribution</h3>
+            <div style={{background:X.surface,borderRadius:12,padding:16,border:`1px solid ${X.border}`}}>
+              <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 8px"}}>Status Distribution</h3>
                 {(()=>{const entries=Object.entries(SC).map(([k,c])=>({label:k,count:stats[k]||0,color:c.color}));const total=entries.reduce((s,e)=>s+e.count,0);if(!total)return null;
-                  const cx=65,cy=65,R=56,r=38;let ca=-Math.PI/2;const g=0.04;
+                  const cx=100,cy=100,R=90,r=58;let ca=-Math.PI/2;const g=0.04;
                   const arcs=entries.filter(e=>e.count>0).map(e=>{const a=(e.count/total)*Math.PI*2-g,sa=ca+g/2;ca+=a+g;const ea=sa+a,la=a>Math.PI?1:0;
                     const d=`M${cx+R*Math.cos(sa)},${cy+R*Math.sin(sa)} A${R},${R} 0 ${la} 1 ${cx+R*Math.cos(ea)},${cy+R*Math.sin(ea)} L${cx+r*Math.cos(ea)},${cy+r*Math.sin(ea)} A${r},${r} 0 ${la} 0 ${cx+r*Math.cos(sa)},${cy+r*Math.sin(sa)} Z`;
                     return {...e,d,pct:Math.round(e.count/total*100)};});
-                  return (<div style={{display:"flex",alignItems:"center",gap:14}}>
-                    <div style={{position:"relative",width:130,height:130,flexShrink:0}}>
-                      <svg viewBox="0 0 130 130" width="130" height="130">{arcs.map((a,i)=><path key={i} d={a.d} fill={a.color} opacity={0.85}/>)}</svg>
+                  return (<div style={{display:"flex",alignItems:"center",gap:16}}>
+                    <div style={{position:"relative",width:200,height:200,flexShrink:0}}>
+                      <svg viewBox="0 0 200 200" width="200" height="200">{arcs.map((a,i)=><path key={i} d={a.d} fill={a.color} opacity={0.85}/>)}</svg>
                       <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",textAlign:"center"}}>
                         <div style={{fontFamily:FM,fontSize:24,fontWeight:700,lineHeight:1}}>{total}</div>
                         <div style={{fontSize:14,color:X.textDim,marginTop:2}}>Total</div>
@@ -481,57 +577,6 @@ function Dashboard(){
                   </div>);
               })()}
             </div>
-          </div>
-
-          {/* Row 3 — Project Timeline (full width) */}
-          <div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`,marginTop:16}}>
-            <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 16px",display:"flex",alignItems:"center",gap:8}}><span style={{width:3,height:14,background:X.accent,borderRadius:2}}/>Project Timeline</h3>
-            {(()=>{
-              const projList=[...new Set(twp.map(d=>d.project))];
-              const projBars=projList.map(pn=>{
-                const pt=twp.filter(d=>d.project===pn&&d.start&&d.end);
-                if(!pt.length) return null;
-                const dates=pt.flatMap(t=>[pD(t.start),pD(t.end)]);
-                const s=new Date(Math.min(...dates)),e=new Date(Math.max(...dates));
-                const avg=Math.round(twp.filter(d=>d.project===pn).reduce((sum,t)=>sum+t.progress,0)/twp.filter(d=>d.project===pn).length);
-                return {name:pn,start:s,end:e,avg,color:pcMap[pn]||X.accent};
-              }).filter(Boolean);
-              if(!projBars.length) return (<div style={{padding:40,textAlign:"center",color:X.textDim}}><div style={{fontSize:32,marginBottom:8,opacity:0.3}}>📅</div><div style={{fontSize:14}}>No timeline data available</div></div>);
-              const allDates=projBars.flatMap(p=>[p.start,p.end]);
-              const mn=new Date(Math.min(...allDates)),mx=new Date(Math.max(...allDates));
-              const td=(mx-mn)/864e5+1;
-              const todayPct=((new Date()-mn)/864e5)/td*100;
-              const months=[];let cur=new Date(mn.getFullYear(),mn.getMonth(),1);
-              while(cur<=mx){const off=Math.max(0,(cur-mn)/864e5);months.push({label:`${cur.getMonth()+1}月`,year:cur.getFullYear(),isJan:cur.getMonth()===0,pct:(off/td)*100});cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);}
-              return (<div>
-                <div style={{display:"flex",marginBottom:4}}>
-                  <div style={{width:130,minWidth:130}}/>
-                  <div style={{flex:1,position:"relative",height:20,overflow:"hidden"}}>
-                    {months.filter((_,i)=>i%2===0).map((m,i)=>(<div key={i} style={{position:"absolute",left:`${m.pct}%`,fontSize:14,color:X.textDim,whiteSpace:"nowrap"}}>{m.isJan?`${m.year}.`:""}{m.label}</div>))}
-                  </div>
-                </div>
-                <div style={{position:"relative"}}>
-                  {projBars.map((p,i)=>{
-                    const l=((p.start-mn)/864e5)/td*100;
-                    const w=Math.max(1,((p.end-p.start)/864e5+1)/td*100);
-                    const fmtD=d=>`${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}`;
-                    return (<div key={p.name} style={{display:"flex",alignItems:"center",height:32,gap:8,position:"relative"}}>
-                      <div style={{width:130,minWidth:130,fontSize:14,color:X.textSec,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textAlign:"right",paddingRight:8,fontWeight:500,display:"flex",alignItems:"center",justifyContent:"flex-end",gap:5}}>
-                        <span style={{width:6,height:6,borderRadius:"50%",background:p.color,flexShrink:0}}/>{p.name}
-                      </div>
-                      <div style={{flex:1,position:"relative",height:18}}>
-                        {months.map((m,mi)=>(<div key={mi} style={{position:"absolute",left:`${m.pct}%`,top:0,bottom:0,width:1,background:X.borderLight}}/>))}
-                        <div onMouseEnter={()=>setOvHover(i)} onMouseLeave={()=>setOvHover(null)} style={{position:"absolute",left:`${l}%`,width:`${w}%`,height:"100%",borderRadius:4,background:`${p.color}20`,border:`1px solid ${p.color}30`,minWidth:6,cursor:"pointer",zIndex:1}}/>
-                        <div style={{position:"absolute",left:`${l}%`,width:`${w*p.avg/100}%`,height:"100%",borderRadius:4,background:p.color,opacity:p.avg===100?0.4:0.7,minWidth:p.avg>0?4:0,pointerEvents:"none"}}/>
-                        {w>5&&<div style={{position:"absolute",left:`${l+w+0.5}%`,top:2,fontSize:14,fontFamily:FM,color:p.avg===100?X.green:p.color,fontWeight:600,pointerEvents:"none"}}>{p.avg}%</div>}
-                        {ovHover===i&&<div style={{position:"absolute",left:`${l}%`,bottom:20,background:X.surface,color:X.text,fontSize:13,padding:"6px 12px",borderRadius:8,whiteSpace:"nowrap",zIndex:30,boxShadow:`0 4px 16px ${X.shadowHeavy}`,border:`1px solid ${X.border}`,pointerEvents:"none"}}>{fmtD(p.start)} → {fmtD(p.end)}　Progress: {p.avg}%</div>}
-                      </div>
-                    </div>);
-                  })}
-                  {todayPct>=0&&todayPct<=100&&<div style={{position:"absolute",left:`${130+8}px`,right:0,top:0,bottom:0,pointerEvents:"none"}}><div style={{position:"absolute",left:`${todayPct}%`,top:0,bottom:0,borderLeft:`2px dashed ${X.accent}`,opacity:0.5}}/></div>}
-                </div>
-              </div>);
-            })()}
           </div>
 
           {/* Row 4 — Analysis Zone: Team Workload | Tasks per Project */}
@@ -645,7 +690,7 @@ function Dashboard(){
           const c=pcMap[selProj]||X.accent;const ts=allS.filter(s=>pt.some(t=>t.id===s.task_id));const ds=ts.filter(s=>s.done).length;
           const avg=pt.length>0?Math.round(pt.reduce((s,t)=>s+t.progress,0)/pt.length):0;
           const icon=projIcons[selProj];
-          const handleAdd=()=>{if(!draft.task.trim())return;const dur=(draft.start&&draft.end)?Math.max(1,Math.round((pD(draft.end)-pD(draft.start))/864e5)):null;addTask(selProj,{task:draft.task,start:draft.start||null,end:draft.end||null,duration:dur,owner:draft.owner,category:draft.category,priority:draft.priority,notes:draft.notes});setDraft({task:"",project:"",start:"",end:"",owner:"—",category:"活動",priority:"中",notes:""});setShowAdd(false);};
+          const handleAdd=()=>{if(!draft.task.trim())return;const dur=(draft.start&&draft.end)?Math.max(1,Math.ceil((pD(draft.end)-pD(draft.start))/864e5)):null;addTask(selProj,{task:draft.task,start:draft.start||null,end:draft.end||null,duration:dur,owner:draft.owner,category:draft.category,priority:draft.priority,notes:draft.notes});setDraft({task:"",project:"",start:"",end:"",owner:"—",category:"活動",priority:"中",notes:""});setShowAdd(false);};
           return (<div>
             <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20,flexWrap:"wrap"}}>
               <button onClick={()=>{setSelProj(null);setShowAdd(false);}} style={{background:X.surface,border:`1px solid ${X.border}`,borderRadius:20,padding:"6px 14px",fontSize:14,color:X.textSec,cursor:"pointer"}}>← Back</button>
@@ -748,7 +793,7 @@ function Dashboard(){
               </div>
             </div>
             {showTblAdd&&(()=>{
-              const doAdd=()=>{if(!draft.task.trim()||!draft.project.trim())return;const dur=(draft.start&&draft.end)?Math.max(1,Math.round((pD(draft.end)-pD(draft.start))/864e5)):null;addTask(draft.project,{task:draft.task,start:draft.start||null,end:draft.end||null,duration:dur,owner:draft.owner,category:draft.category,priority:draft.priority,notes:draft.notes});setDraft({task:"",project:"",start:"",end:"",owner:"—",category:"活動",priority:"中",notes:""});setShowTblAdd(false);};
+              const doAdd=()=>{if(!draft.task.trim()||!draft.project.trim())return;const dur=(draft.start&&draft.end)?Math.max(1,Math.ceil((pD(draft.end)-pD(draft.start))/864e5)):null;addTask(draft.project,{task:draft.task,start:draft.start||null,end:draft.end||null,duration:dur,owner:draft.owner,category:draft.category,priority:draft.priority,notes:draft.notes});setDraft({task:"",project:"",start:"",end:"",owner:"—",category:"活動",priority:"中",notes:""});setShowTblAdd(false);};
               return (<div style={{padding:"12px 16px",background:X.surfaceLight,borderBottom:`1px solid ${X.accent}30`}}>
                 <div style={{display:"grid",gridTemplateColumns:"1.5fr 2fr 1fr 1fr",gap:8,marginBottom:8}}>
                   <div><div style={{fontSize:12,color:X.textDim,marginBottom:3}}>Project *</div><input value={draft.project} onChange={e=>setDraft(p=>({...p,project:e.target.value}))} list="pl" style={iS2}/><datalist id="pl">{[...new Set(allT.map(t=>t.project))].map(p=><option key={p} value={p}/>)}</datalist></div>
