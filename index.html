@@ -507,7 +507,7 @@ function Dashboard(){
             })()}
           </div>
 
-          {/* Team Workload + Overdue Tasks */}
+          {/* Row 4 — Analysis Zone: Team Workload | Tasks per Project */}
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(340px, 1fr))",gap:16,marginTop:16}}>
             {(()=>{
               const ownerMap={};filtered.forEach(t=>{ownerMap[t.owner]=(ownerMap[t.owner]||0)+1;});
@@ -526,26 +526,19 @@ function Dashboard(){
                 </div>))}
               </div>);
             })()}
-            {(()=>{
-              const now=new Date();
-              const overdue=filtered.filter(t=>{if(!t.end||t.status==="已完成")return false;return pD(t.end)<now;}).sort((a,b)=>pD(a.end)-pD(b.end));
-              return (<div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
-                <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 12px",display:"flex",alignItems:"center",gap:8}}><span style={{width:3,height:14,background:X.red,borderRadius:2}}/>Overdue Tasks</h3>
-                {overdue.length===0?(<div style={{padding:30,textAlign:"center"}}><div style={{fontSize:32,marginBottom:8}}>&#10003;</div><div style={{fontSize:14,fontWeight:600,color:X.green}}>No overdue tasks</div><div style={{fontSize:13,color:X.textDim,marginTop:4}}>All tasks are on track</div></div>)
-                :overdue.map(t=>{const ed=pD(t.end);const days=Math.ceil((now-ed)/864e5);
-                  return (<div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:`1px solid ${X.border}22`}}>
-                    <span style={{width:6,height:6,borderRadius:"50%",background:pcMap[t.project]||X.accent,flexShrink:0}}/>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:14,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.task}</div>
-                      <div style={{fontSize:12,color:X.textDim}}>{t.project} · {t.owner}</div>
+            <div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
+              <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 12px"}}>Tasks per Project</h3>
+              {(()=>{const pc=Object.entries(projStats).map(([n,s])=>({name:n,count:s.total})).sort((a,b)=>b.count-a.count);const gm=Math.ceil(Math.max(...pc.map(p=>p.count),1)/2)*2;
+                return (<div>{pc.map((p,i)=>(<div key={i} style={{display:"flex",alignItems:"center",marginBottom:6}}>
+                  <div title={p.name} style={{width:150,minWidth:150,textAlign:"right",paddingRight:10,fontSize:14,color:X.textSec,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</div>
+                  <div style={{flex:1,height:20,position:"relative"}}>
+                    <div style={{height:"100%",width:`${(p.count/gm)*100}%`,background:pcMap[p.name]||X.accent,borderRadius:4,display:"flex",alignItems:"center",justifyContent:"flex-end",paddingRight:6,minWidth:p.count>0?24:0}}>
+                      <span style={{fontFamily:FM,fontSize:14,fontWeight:600,color:"#fff"}}>{p.count}</span>
                     </div>
-                    <div style={{textAlign:"right",flexShrink:0}}>
-                      <div style={{fontSize:14,fontWeight:700,fontFamily:FM,color:X.red}}>-{days}d</div>
-                      <div style={{fontSize:11,color:X.textDim,fontFamily:FM}}>{fD(t.end)}</div>
-                    </div>
-                  </div>);})}
-              </div>);
-            })()}
+                  </div>
+                </div>))}</div>);
+              })()}
+            </div>
           </div>
         </>)}
 
