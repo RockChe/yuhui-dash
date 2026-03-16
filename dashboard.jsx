@@ -1,31 +1,8 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>專案管理儀表板</title>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet"/>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #1C2128; transition: background 0.3s; }
-    @keyframes toastIn { from { opacity:0; transform:translateX(-50%) translateY(20px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
-    @keyframes toastOut { from { opacity:1; transform:translateX(-50%) translateY(0); } to { opacity:0; transform:translateX(-50%) translateY(20px); } }
-  </style>
-  <script>
-try{var t=localStorage.getItem("dash-theme");var m={"warm":"#F5F3EF","dimmed":"#1C2128"};if(t&&m[t])document.body.style.background=m[t];}catch(e){}
-</script>
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-</head>
-<body>
-  <div id="root"></div>
-  <script type="text/babel">
 /*
-  專案管理 Dashboard — 2026 Calm Light Theme (Linear / Notion / Stripe)
+  專案管理 Dashboard — Silicon Valley Dark Theme
   CC: Supabase 整合指引見檔案底部註解
 */
-const { useState, useEffect, useMemo, useRef, useCallback } = React;
+import { useState, useMemo, useRef, useCallback } from "react";
 
 // ── SEED DATA (CC: 匯入 Supabase 後可刪) ──
 const SEED_TASKS = [
@@ -79,38 +56,27 @@ function fetchData() { return { tasks: SEED_TASKS, subtasks: SEED_SUBTASKS }; }
 function toggleSubMem(subs, id) { return subs.map(s => s.id === id ? { ...s, done: !s.done, done_date: !s.done ? new Date().toLocaleDateString("zh-TW") : null } : s); }
 function computeProgress(tid, subs) { const s = subs.filter(x => x.task_id === tid); if (!s.length) return { total:0,done:0,pct:0 }; const d = s.filter(x => x.done).length; return { total:s.length,done:d,pct:Math.round(d/s.length*100) }; }
 
-// ── Multi-Theme System ──
-const THEMES = {
-  warm: { key:"warm", label:"Warm Neutral", icon:"\uD83D\uDCC4", isDark:false,
-    bg:"#F5F3EF", surface:"#FFFFFF", surfaceHover:"#EEECE8", surfaceLight:"#EEECE8",
-    accent:"#2383E2", accentDark:"#1B6EC2",
-    text:"#37352F", textSec:"#6B6B6B", textDim:"#9B9A97",
-    border:"#E3E2DE", borderLight:"#EEECE8",
-    red:"#EB5757", amber:"#CB912F", green:"#4DAB9A", purple:"#9065B0", pink:"#D44C8E",
-    shadow:"rgba(0,0,0,0.06)", shadowHeavy:"rgba(0,0,0,0.10)",
-    scrollThumb:"#C8C7C3", selectionBg:"#2383E230" },
-  dimmed: { key:"dimmed", label:"Soft Dark", icon:"\uD83C\uDF19", isDark:true,
-    bg:"#1C2128", surface:"#2D333B", surfaceHover:"#373E47", surfaceLight:"#262C36",
-    accent:"#539BF5", accentDark:"#4184E4",
-    text:"#ADBAC7", textSec:"#768390", textDim:"#545D68",
-    border:"#373E47", borderLight:"#2D333B",
-    red:"#F47067", amber:"#DAAA3F", green:"#57AB5A", purple:"#B083F0", pink:"#F47067",
-    shadow:"rgba(0,0,0,0.3)", shadowHeavy:"rgba(0,0,0,0.4)",
-    scrollThumb:"#545D68", selectionBg:"#539BF530" },
+// ── Silicon Valley Dark Theme (Linear / Vercel / Slate) ──
+const X = {
+  bg:"#0B0F1A", surface:"#111827", surfaceHover:"#1F2937", surfaceLight:"#1A2332",
+  accent:"#818CF8", accentDark:"#6366F1",
+  text:"#E2E8F0", textSec:"#94A3B8", textDim:"#64748B",
+  border:"#1E293B", borderLight:"#334155",
+  red:"#F87171", amber:"#FBBF24", green:"#34D399", purple:"#A78BFA", pink:"#F472B6",
 };
-const THEME_ORDER = ["dimmed","warm"];
-function mkSC(t){ const a=t.isDark?"25":"15"; return {"已完成":{color:t.green,bg:t.green+a,icon:"✓"},"進行中":{color:t.amber,bg:t.amber+a,icon:"▸"},"待辦":{color:t.accent,bg:t.accent+a,icon:"○"},"提案中":{color:t.pink,bg:t.pink+a,icon:"◇"}}; }
-function mkPC(t){ return {"高":{color:t.red},"中":{color:t.amber},"低":{color:t.textDim}}; }
-function mkCC(t){ return {"商務合作":t.accent,"活動":t.purple,"播出/開始":t.amber,"行銷":"#06B6D4","發行":t.green,"市場展":t.red}; }
-function mkPJC(t){ return [t.accent,t.purple,t.amber,t.red,t.green,"#06B6D4",t.pink]; }
-let X = THEMES.dimmed;
-let SC = mkSC(X), PC = mkPC(X), CC = mkCC(X), PJC = mkPJC(X);
+const SC = {
+  "已完成":{color:X.green,bg:"#34D39915",icon:"✓"},
+  "進行中":{color:X.amber,bg:"#FBBF2415",icon:"▸"},
+  "待辦":{color:X.accent,bg:"#818CF815",icon:"○"},
+  "提案中":{color:X.pink,bg:"#F472B615",icon:"◇"},
+};
+const PC = {"高":{color:X.red},"中":{color:X.amber},"低":{color:X.textDim}};
+const CC = {"商務合作":"#60A5FA","活動":"#A78BFA","播出/開始":"#FBBF24","行銷":"#22D3EE","發行":"#34D399","市場展":"#F87171"};
+const PJC = ["#818CF8","#A78BFA","#FBBF24","#F87171","#34D399","#60A5FA","#F472B6"];
 const F = "'Noto Sans TC',-apple-system,BlinkMacSystemFont,sans-serif";
 const FM = "'JetBrains Mono','SF Mono',monospace";
 function pD(s){if(!s)return null;const[y,m,d]=s.split("/").map(Number);return new Date(y,m-1,d);}
 function fD(s){return s?s.replace(/\//g,"."):"\u2014";}
-function toISO(s){if(!s)return"";return s.replace(/\//g,"-");}
-function fromISO(s){if(!s)return"";return s.replace(/-/g,"/");}
 
 // ── Mini Gantt (for cards) ──
 function MiniGantt({tasks,subtasks,height=28,color}) {
@@ -134,20 +100,20 @@ function ProgressBar({pct,done,total}){
   </div>);
 }
 
-function EditableCell({value,onSave,options=null,isDate=false,style={}}){
-  const[ed,setEd]=useState(false);const[dr,setDr]=useState(isDate?toISO(value):value);const ref=useRef(null);
-  const start=(e)=>{e.stopPropagation();setDr(isDate?toISO(value):(value||""));setEd(true);setTimeout(()=>ref.current?.focus(),0);};
-  const commit=()=>{setEd(false);const v=isDate?fromISO(dr):dr;if(v!==value)onSave(v);};
-  const cancel=()=>{setEd(false);setDr(isDate?toISO(value):value);};
-  if(!ed)return (<span onClick={start} style={{cursor:"text",borderBottom:"1px dashed transparent",overflow:"hidden",textOverflow:"ellipsis",...style}} onMouseEnter={e=>e.target.style.borderBottomColor=X.borderLight} onMouseLeave={e=>e.target.style.borderBottomColor="transparent"}>{value||"\u2014"}</span>);
+function EditableCell({value,onSave,options=null,style={}}){
+  const[ed,setEd]=useState(false);const[dr,setDr]=useState(value);const ref=useRef(null);
+  const start=(e)=>{e.stopPropagation();setDr(value||"");setEd(true);setTimeout(()=>ref.current?.focus(),0);};
+  const commit=()=>{setEd(false);if(dr!==value)onSave(dr);};
+  const cancel=()=>{setEd(false);setDr(value);};
+  if(!ed)return (<span onClick={start} style={{cursor:"text",borderBottom:"1px dashed transparent",...style}} onMouseEnter={e=>e.target.style.borderBottomColor=X.borderLight} onMouseLeave={e=>e.target.style.borderBottomColor="transparent"}>{value||"\u2014"}</span>);
   if(options) return (<select ref={ref} value={dr} onChange={e=>setDr(e.target.value)} onBlur={commit} onClick={e=>e.stopPropagation()} onKeyDown={e=>{if(e.key==="Escape")cancel();}} style={{fontFamily:F,fontSize:14,padding:"2px 4px",borderRadius:4,border:`1px solid ${X.accent}`,outline:"none",background:X.surface,color:X.text,...style}}>{options.map(o=><option key={o} value={o}>{o}</option>)}</select>);
-  return (<input ref={ref} type={isDate?"date":"text"} value={dr} onChange={e=>setDr(e.target.value)} onBlur={commit} onClick={e=>e.stopPropagation()} onKeyDown={e=>{if(e.key==="Enter")commit();if(e.key==="Escape")cancel();}} style={{fontFamily:F,fontSize:14,padding:"2px 4px",borderRadius:4,border:`1px solid ${X.accent}`,outline:"none",background:X.surface,color:X.text,width:"100%",...style}}/>);
+  return (<input ref={ref} value={dr} onChange={e=>setDr(e.target.value)} onBlur={commit} onClick={e=>e.stopPropagation()} onKeyDown={e=>{if(e.key==="Enter")commit();if(e.key==="Escape")cancel();}} style={{fontFamily:F,fontSize:14,padding:"2px 4px",borderRadius:4,border:`1px solid ${X.accent}`,outline:"none",background:X.surface,color:X.text,width:"100%",...style}}/>);
 }
 
 // ── Gantt Timeline ──
 function GanttTimeline({tasks,subtasks,fp,fs,fpr}){
   const fil=tasks.filter(d=>{if(!d.start)return false;if(fp instanceof Set){if(fp.size>0&&!fp.has(d.project))return false;}else if(typeof fp==="string"&&fp!=="全部"&&d.project!==fp)return false;if(fs!=="全部"&&d.status!==fs)return false;if(fpr!=="全部"&&d.priority!==fpr)return false;return true;});
-  if(!fil.length) return (<div style={{padding:60,textAlign:"center",color:X.textDim}}><div style={{fontSize:40,marginBottom:12,opacity:0.3}}>📅</div><div style={{fontSize:16,fontWeight:600,marginBottom:6,color:X.textSec}}>No timeline data</div><div style={{fontSize:14}}>Try adjusting filters or adding tasks with dates</div></div>);
+  if(!fil.length) return (<div style={{padding:60,textAlign:"center",color:X.textDim}}>No data</div>);
   const dates=fil.flatMap(d=>[pD(d.start),pD(d.end)]).filter(Boolean);
   const mn=new Date(Math.min(...dates)),mx=new Date(Math.max(...dates)),td=(mx-mn)/864e5+1;
   const months=[];let cur=new Date(mn.getFullYear(),mn.getMonth(),1);
@@ -206,7 +172,7 @@ function GanttTimeline({tasks,subtasks,fp,fs,fpr}){
                 {r.task.progress>0&&<div style={{position:"absolute",left:`${r.l}%`,width:`${r.w*r.task.progress/100}%`,top:8,height:20,borderRadius:10,background:bc,opacity:dn?0.4:0.7,minWidth:4}}/>}
                 {r.task.progress>0&&r.task.progress<100&&r.w>3&&<div style={{position:"absolute",left:`${r.l+r.w*r.task.progress/100+0.4}%`,top:11,fontSize:14,fontFamily:FM,color:bc,fontWeight:600}}>{r.task.progress}%</div>}
                 {dn&&r.w>3&&<div style={{position:"absolute",left:`${r.l+r.w/2}%`,top:11,fontSize:14,fontFamily:FM,color:X.green,fontWeight:700,transform:"translateX(-50%)"}}>100%</div>}
-                {hv&&<div style={{position:"absolute",left:`${Math.min(Math.max(r.l,2),65)}%`,bottom:34,background:X.surfaceLight,color:X.text,fontSize:14,padding:"6px 12px",borderRadius:8,whiteSpace:"nowrap",maxWidth:"90vw",overflow:"hidden",textOverflow:"ellipsis",zIndex:30,boxShadow:`0 4px 16px ${X.shadowHeavy}`,border:`1px solid ${X.border}`}}>{fD(r.task.start)} → {fD(r.task.end)}　{r.task.duration}d　{r.task.progress}%</div>}
+                {hv&&<div style={{position:"absolute",left:`${Math.min(Math.max(r.l,2),65)}%`,bottom:34,background:X.surfaceLight,color:X.text,fontSize:14,padding:"6px 12px",borderRadius:8,whiteSpace:"nowrap",zIndex:30,boxShadow:"0 4px 16px rgba(0,0,0,0.7)",border:`1px solid ${X.border}`}}>{fD(r.task.start)} → {fD(r.task.end)}　{r.task.duration}d　{r.task.progress}%</div>}
               </div>);
             })}
           </div>
@@ -247,7 +213,7 @@ function getTemplate(){
 }
 
 // ── Main ──
-function Dashboard(){
+export default function Dashboard(){
   const{tasks:iT,subtasks:iS}=fetchData();
   const[allT,setAllT]=useState(iT);const[allS,setAllS]=useState(iS);
   const[expanded,setExpanded]=useState(new Set());
@@ -261,16 +227,6 @@ function Dashboard(){
   const[draft,setDraft]=useState({task:"",project:"",start:"",end:"",owner:"—",category:"活動",priority:"中",notes:""});
   const[projIcons,setProjIcons]=useState({});
   const fileRef=useRef(null);const[uploadTarget,setUploadTarget]=useState(null);
-  const[scrolled,setScrolled]=useState(false);
-  const[searchQ,setSearchQ]=useState("");
-  const[toast,setToast]=useState(null);const toastTimer=useRef(null);
-  const showToast=useCallback((msg,type="success")=>{if(toastTimer.current)clearTimeout(toastTimer.current);setToast({msg,type,fading:false});toastTimer.current=setTimeout(()=>{setToast(prev=>prev?{...prev,fading:true}:null);setTimeout(()=>setToast(null),300);},2200);},[]);
-  const[ovHover,setOvHover]=useState(null);
-  const[themeKey,setThemeKey]=useState(()=>{try{return localStorage.getItem("dash-theme")||"dimmed";}catch{return "dimmed";}});
-  X=THEMES[themeKey]||THEMES.dimmed; SC=mkSC(X); PC=mkPC(X); CC=mkCC(X); PJC=mkPJC(X);
-  const cycleTheme=useCallback(()=>{setThemeKey(p=>{const i=THEME_ORDER.indexOf(p);return THEME_ORDER[(i+1)%THEME_ORDER.length];});},[]);
-  useEffect(()=>{try{localStorage.setItem("dash-theme",themeKey);}catch{}document.body.style.background=X.bg;},[themeKey]);
-  useEffect(()=>{const h=()=>setScrolled(window.scrollY>10);window.addEventListener("scroll",h,{passive:true});return()=>window.removeEventListener("scroll",h);},[]);
 
   const toggle=id=>setExpanded(p=>{const n=new Set(p);n.has(id)?n.delete(id):n.add(id);return n;});
   const toggleSub=id=>setAllS(p=>toggleSubMem(p,id));
@@ -280,20 +236,20 @@ function Dashboard(){
   const addTask=useCallback((proj,data)=>{
     const mx=allT.reduce((m,t)=>{const n=parseInt(t.id.replace("T",""));return n>m?n:m;},0);
     const ms=allT.reduce((m,t)=>t.sort_order>m?t.sort_order:m,0);
-    setAllT(p=>[...p,{id:`T${String(mx+1).padStart(2,"0")}`,project:proj,status:"待辦",category:"活動",priority:"中",owner:"—",notes:"",sort_order:ms+1,...data}]);showToast("Task created","success");
-  },[allT,showToast]);
-  const deleteTask=useCallback(id=>{setAllT(p=>p.filter(t=>t.id!==id));setAllS(p=>p.filter(s=>s.task_id!==id));showToast("Task deleted","error");},[showToast]);
-  const archiveProj=useCallback(p=>{setArchived(prev=>{const n=new Set(prev);n.add(p);return n;});setSelProj(null);showToast("Project archived","warn");},[showToast]);
-  const unarchiveProj=useCallback(p=>{setArchived(prev=>{const n=new Set(prev);n.delete(p);return n;});showToast("Project unarchived","success");},[showToast]);
-  const deleteProj=useCallback(p=>{const ids=allT.filter(t=>t.project===p).map(t=>t.id);setAllT(prev=>prev.filter(t=>t.project!==p));setAllS(prev=>prev.filter(s=>!ids.includes(s.task_id)));setSelProj(null);showToast("Project deleted","error");},[allT,showToast]);
-  const createProj=useCallback(name=>{if(!name.trim())return;const mx=allT.reduce((m,t)=>{const n=parseInt(t.id.replace("T",""));return n>m?n:m;},0);const ms=allT.reduce((m,t)=>t.sort_order>m?t.sort_order:m,0);setAllT(p=>[...p,{id:`T${String(mx+1).padStart(2,"0")}`,project:name.trim(),task:"（New task）",status:"待辦",category:"活動",start:null,duration:null,end:null,owner:"—",priority:"中",notes:"",sort_order:ms+1}]);setShowCreateProj(false);setNewProjName("");setSelProj(name.trim());showToast("Project created","success");},[allT,showToast]);
+    setAllT(p=>[...p,{id:`T${String(mx+1).padStart(2,"0")}`,project:proj,status:"待辦",category:"活動",priority:"中",owner:"—",notes:"",sort_order:ms+1,...data}]);
+  },[allT]);
+  const deleteTask=useCallback(id=>{setAllT(p=>p.filter(t=>t.id!==id));setAllS(p=>p.filter(s=>s.task_id!==id));},[]);
+  const archiveProj=useCallback(p=>{setArchived(prev=>{const n=new Set(prev);n.add(p);return n;});setSelProj(null);},[]);
+  const unarchiveProj=useCallback(p=>setArchived(prev=>{const n=new Set(prev);n.delete(p);return n;}),[]);
+  const deleteProj=useCallback(p=>{const ids=allT.filter(t=>t.project===p).map(t=>t.id);setAllT(prev=>prev.filter(t=>t.project!==p));setAllS(prev=>prev.filter(s=>!ids.includes(s.task_id)));setSelProj(null);},[allT]);
+  const createProj=useCallback(name=>{if(!name.trim())return;const mx=allT.reduce((m,t)=>{const n=parseInt(t.id.replace("T",""));return n>m?n:m;},0);const ms=allT.reduce((m,t)=>t.sort_order>m?t.sort_order:m,0);setAllT(p=>[...p,{id:`T${String(mx+1).padStart(2,"0")}`,project:name.trim(),task:"（New task）",status:"待辦",category:"活動",start:null,duration:null,end:null,owner:"—",priority:"中",notes:"",sort_order:ms+1}]);setShowCreateProj(false);setNewProjName("");setSelProj(name.trim());},[allT]);
 
   const handleIconUpload=(e,proj)=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=(ev)=>{setProjIcons(p=>({...p,[proj]:ev.target.result}));};reader.readAsDataURL(file);};
 
   const twp=useMemo(()=>allT.map(t=>{const p=computeProgress(t.id,allS);return {...t,progress:t.status==="已完成"?100:p.pct,sDone:p.done,sTotal:p.total};}),[allT,allS]);
 
   const projectNames=useMemo(()=>[...new Set(twp.map(d=>d.project))],[twp]);
-  const filtered=useMemo(()=>twp.filter(d=>{if(fpSet.size>0&&!fpSet.has(d.project))return false;if(fs!=="全部"&&d.status!==fs)return false;if(fpr!=="全部"&&d.priority!==fpr)return false;if(searchQ){const q=searchQ.toLowerCase();if(!(d.task||"").toLowerCase().includes(q)&&!(d.project||"").toLowerCase().includes(q)&&!(d.owner||"").toLowerCase().includes(q)&&!(d.notes||"").toLowerCase().includes(q))return false;}return true;}),[fpSet,fs,fpr,twp,searchQ]);
+  const filtered=useMemo(()=>twp.filter(d=>{if(fpSet.size>0&&!fpSet.has(d.project))return false;if(fs!=="全部"&&d.status!==fs)return false;if(fpr!=="全部"&&d.priority!==fpr)return false;return true;}),[fpSet,fs,fpr,twp]);
   const sorted=useMemo(()=>{if(!sortCol)return filtered;const po={"高":0,"中":1,"低":2};return [...filtered].sort((a,b)=>{let va=a[sortCol],vb=b[sortCol];if(sortCol==="start"||sortCol==="end"){va=va?pD(va).getTime():0;vb=vb?pD(vb).getTime():0;}if(sortCol==="duration"||sortCol==="progress"){va=va||0;vb=vb||0;}if(sortCol==="priority"){va=po[va]??9;vb=po[vb]??9;}if(typeof va==="string"){va=va.toLowerCase();vb=(vb||"").toLowerCase();}return sortDir==="asc"?(va<vb?-1:va>vb?1:0):(va>vb?-1:va<vb?1:0);});},[filtered,sortCol,sortDir]);
 
   const stats=useMemo(()=>{const s={};Object.keys(SC).forEach(k=>s[k]=0);filtered.forEach(d=>s[d.status]++);return s;},[filtered]);
@@ -305,41 +261,24 @@ function Dashboard(){
   const SI=({col})=>sortCol!==col?<span style={{opacity:0.3,marginLeft:3}}>↕</span>:<span style={{marginLeft:3,color:X.accent}}>{sortDir==="asc"?"↑":"↓"}</span>;
   const pcMap={};[...new Set(twp.map(d=>d.project))].forEach((p,i)=>{pcMap[p]=PJC[i%PJC.length];});
 
-  const handleImport=e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=ev=>{const imported=parseCSV(ev.target.result);if(imported.length){const mx=allT.reduce((m,t)=>{const n=parseInt(t.id.replace("T",""));return n>m?n:m;},0);const ms=allT.reduce((m,t)=>t.sort_order>m?t.sort_order:m,0);const withIds=imported.map((t,i)=>({...t,id:t.id||`T${String(mx+1+i).padStart(2,"0")}`,sort_order:ms+1+i}));setAllT(p=>[...p,...withIds]);showToast(`${imported.length} tasks imported`,"success");}};reader.readAsText(file);e.target.value="";};
+  const handleImport=e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=ev=>{const imported=parseCSV(ev.target.result);if(imported.length){const mx=allT.reduce((m,t)=>{const n=parseInt(t.id.replace("T",""));return n>m?n:m;},0);const ms=allT.reduce((m,t)=>t.sort_order>m?t.sort_order:m,0);const withIds=imported.map((t,i)=>({...t,id:t.id||`T${String(mx+1+i).padStart(2,"0")}`,sort_order:ms+1+i}));setAllT(p=>[...p,...withIds]);}};reader.readAsText(file);e.target.value="";};
 
   const iS2={fontFamily:F,fontSize:14,padding:"6px 10px",borderRadius:8,border:`1px solid ${X.border}`,outline:"none",color:X.text,background:X.surface,width:"100%"};
 
   return (
-    <div style={{minHeight:"100vh",background:X.bg,fontFamily:F,color:X.text,transition:"background-color 0.3s,color 0.3s"}}>
+    <div style={{minHeight:"100vh",background:X.bg,fontFamily:F,color:X.text}}>
       <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet"/>
-      <style>{`::selection{background:${X.selectionBg}} *{box-sizing:border-box} ::-webkit-scrollbar{width:6px;height:6px} ::-webkit-scrollbar-thumb{background:${X.scrollThumb};border-radius:3px} ::-webkit-scrollbar-track{background:transparent} input,select,button{font-family:'Noto Sans TC',-apple-system,sans-serif}`}</style>
+      <style>{`::selection{background:#818CF830} *{box-sizing:border-box} ::-webkit-scrollbar{width:6px;height:6px} ::-webkit-scrollbar-thumb{background:#334155;border-radius:3px} ::-webkit-scrollbar-track{background:transparent} input,select,button{font-family:'Noto Sans TC',-apple-system,sans-serif}`}</style>
       <input type="file" accept="image/*" ref={fileRef} style={{display:"none"}} onChange={e=>{if(uploadTarget)handleIconUpload(e,uploadTarget);setUploadTarget(null);}}/>
 
       {/* Header */}
-      <div style={{borderBottom:`1px solid ${X.border}`,padding:"16px 32px",position:"sticky",top:0,zIndex:50,background:X.surface,boxShadow:scrolled?`0 2px 8px ${X.shadow}`:"none",transition:"box-shadow 0.2s"}}>
-        <div style={{maxWidth:1400,margin:"0 auto",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
+      <div style={{borderBottom:`1px solid ${X.border}`,padding:"16px 32px"}}>
+        <div style={{maxWidth:1400,margin:"0 auto",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
             <div style={{width:32,height:32,borderRadius:"50%",background:X.accent,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:17,color:"#fff"}}>P</div>
-            <span style={{fontSize:22,fontWeight:700}}>專案管理儀表板</span>
+            <span style={{fontSize:24,fontSize:22,fontWeight:700}}>專案管理儀表板</span>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:20}}>
-            <div style={{position:"relative",display:"flex",alignItems:"center"}}>
-              <span style={{position:"absolute",left:10,fontSize:14,color:X.textDim,pointerEvents:"none"}}>🔍</span>
-              <input value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="Search tasks..." style={{fontFamily:F,fontSize:14,padding:"8px 32px 8px 34px",borderRadius:20,border:`1px solid ${X.border}`,outline:"none",background:X.surfaceLight,color:X.text,width:220,transition:"border-color 0.2s"}} onFocus={e=>e.target.style.borderColor=X.accent} onBlur={e=>e.target.style.borderColor=X.border}/>
-              {searchQ&&<button onClick={()=>setSearchQ("")} style={{position:"absolute",right:8,background:"transparent",border:"none",color:X.textDim,fontSize:16,cursor:"pointer",padding:"2px 4px",lineHeight:1}}>×</button>}
-            </div>
-            {/* Theme Switch — left Soft Dark / right Warm Neutral */}
-            <div onClick={cycleTheme} title={THEMES[themeKey].label}
-              style={{width:56,height:28,borderRadius:14,background:themeKey==="warm"?X.accent:X.border,
-                cursor:"pointer",position:"relative",transition:"background 0.3s",flexShrink:0}}>
-              <div style={{position:"absolute",top:3,left:themeKey==="warm"?31:3,
-                width:22,height:22,borderRadius:11,background:"#fff",
-                transition:"left 0.3s",boxShadow:"0 1px 3px rgba(0,0,0,0.2)",
-                display:"flex",alignItems:"center",justifyContent:"center",fontSize:13}}>
-                {THEMES[themeKey].icon}
-              </div>
-            </div>
-            <div style={{width:1,height:28,background:X.border}}/>
             <div style={{textAlign:"right"}}>
               <div style={{fontSize:14,color:X.textDim,fontFamily:FM}}>Overall</div>
               <div style={{fontSize:30,color:X.accent,fontWeight:700,fontFamily:FM,lineHeight:1}}>{avgProg}%</div>
@@ -361,15 +300,15 @@ function Dashboard(){
         </div>
 
         {/* Status cards */}
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(160px, 1fr))",gap:12,marginBottom:20}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:12,marginBottom:20}}>
           {Object.entries(SC).map(([k,c])=>(<div key={k} onClick={()=>setFS(fs===k?"全部":k)} style={{background:X.surface,borderRadius:12,padding:"16px 18px",border:fs===k?`1px solid ${c.color}`:`1px solid ${X.border}`,cursor:"pointer"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
               <span style={{fontSize:14,color:X.textSec}}>{k}</span><span style={{color:c.color,fontSize:14}}>{c.icon}</span>
             </div>
-            <div style={{fontSize:36,fontWeight:700,fontFamily:FM,lineHeight:1,overflow:"hidden"}}>{stats[k]||0}</div>
+            <div style={{fontSize:36,fontWeight:700,fontFamily:FM,lineHeight:1}}>{stats[k]||0}</div>
           </div>))}
           <div style={{background:X.surface,borderRadius:12,padding:"16px 18px",border:`1px solid ${X.border}`,display:"flex",flexDirection:"column",justifyContent:"center",gap:6}}>
-            <div style={{fontSize:12,color:X.textDim,marginBottom:2}}>Priority</div>
+            <div style={{fontSize:14,color:X.textDim,marginBottom:2,fontSize:12}}>Priority</div>
             {Object.entries(PC).map(([k,c])=>(<div key={k} style={{display:"flex",alignItems:"center",gap:6}}>
               <span style={{width:6,height:6,borderRadius:"50%",background:c.color}}/>
               <span style={{fontSize:14,color:X.textSec,flex:1}}>{k}</span>
@@ -396,52 +335,56 @@ function Dashboard(){
 
         {/* ── OVERVIEW ── */}
         {tab==="overview"&&(<>
-          {/* Row 1 — Action Zone: Overdue Tasks | Upcoming Deadlines */}
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(340px, 1fr))",gap:16}}>
+          {/* Project Overview Timeline */}
+          <div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`,marginBottom:16}}>
+            <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 16px",display:"flex",alignItems:"center",gap:8}}><span style={{width:3,height:14,background:X.accent,borderRadius:2}}/>Project Timeline</h3>
             {(()=>{
-              const now=new Date();
-              const overdue=filtered.filter(t=>{if(!t.end||t.status==="已完成")return false;return pD(t.end)<now;}).sort((a,b)=>pD(a.end)-pD(b.end));
-              return (<div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
-                <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 12px",display:"flex",alignItems:"center",gap:8}}><span style={{width:3,height:14,background:X.red,borderRadius:2}}/>Overdue Tasks</h3>
-                {overdue.length===0?(<div style={{padding:30,textAlign:"center"}}><div style={{fontSize:32,marginBottom:8}}>&#10003;</div><div style={{fontSize:14,fontWeight:600,color:X.green}}>No overdue tasks</div><div style={{fontSize:13,color:X.textDim,marginTop:4}}>All tasks are on track</div></div>)
-                :overdue.map(t=>{const ed=pD(t.end);const days=Math.ceil((now-ed)/864e5);
-                  return (<div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:`1px solid ${X.border}22`}}>
-                    <span style={{width:6,height:6,borderRadius:"50%",background:pcMap[t.project]||X.accent,flexShrink:0}}/>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:14,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.task}</div>
-                      <div style={{fontSize:12,color:X.textDim}}>{t.project} · {t.owner}</div>
-                    </div>
-                    <div style={{textAlign:"right",flexShrink:0}}>
-                      <div style={{fontSize:14,fontWeight:700,fontFamily:FM,color:X.red}}>-{days}d</div>
-                      <div style={{fontSize:11,color:X.textDim,fontFamily:FM}}>{fD(t.end)}</div>
-                    </div>
-                  </div>);})}
+              const projList=[...new Set(twp.map(d=>d.project))];
+              const projBars=projList.map(pn=>{
+                const pt=twp.filter(d=>d.project===pn&&d.start&&d.end);
+                if(!pt.length) return null;
+                const dates=pt.flatMap(t=>[pD(t.start),pD(t.end)]);
+                const s=new Date(Math.min(...dates)),e=new Date(Math.max(...dates));
+                const avg=Math.round(twp.filter(d=>d.project===pn).reduce((sum,t)=>sum+t.progress,0)/twp.filter(d=>d.project===pn).length);
+                return {name:pn,start:s,end:e,avg,color:pcMap[pn]||X.accent};
+              }).filter(Boolean);
+              if(!projBars.length) return (<div style={{color:X.textDim,fontSize:14}}>No data</div>);
+              const allDates=projBars.flatMap(p=>[p.start,p.end]);
+              const mn=new Date(Math.min(...allDates)),mx=new Date(Math.max(...allDates));
+              const td=(mx-mn)/864e5+1;
+              const todayPct=((new Date()-mn)/864e5)/td*100;
+              const months=[];let cur=new Date(mn.getFullYear(),mn.getMonth(),1);
+              while(cur<=mx){const off=Math.max(0,(cur-mn)/864e5);months.push({label:`${cur.getMonth()+1}月`,year:cur.getFullYear(),isJan:cur.getMonth()===0,pct:(off/td)*100});cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);}
+              return (<div>
+                <div style={{display:"flex",marginBottom:4}}>
+                  <div style={{width:130,minWidth:130}}/>
+                  <div style={{flex:1,position:"relative",height:20}}>
+                    {months.filter((_,i)=>i%2===0).map((m,i)=>(<div key={i} style={{position:"absolute",left:`${m.pct}%`,fontSize:14,color:X.textDim,whiteSpace:"nowrap"}}>{m.isJan?`${m.year}.`:""}{m.label}</div>))}
+                  </div>
+                </div>
+                <div style={{position:"relative"}}>
+                  {projBars.map((p,i)=>{
+                    const l=((p.start-mn)/864e5)/td*100;
+                    const w=Math.max(1,((p.end-p.start)/864e5+1)/td*100);
+                    return (<div key={p.name} style={{display:"flex",alignItems:"center",height:32,gap:8}}>
+                      <div style={{width:130,minWidth:130,fontSize:14,color:X.textSec,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textAlign:"right",paddingRight:8,fontWeight:500,display:"flex",alignItems:"center",justifyContent:"flex-end",gap:5}}>
+                        <span style={{width:6,height:6,borderRadius:"50%",background:p.color,flexShrink:0}}/>{p.name}
+                      </div>
+                      <div style={{flex:1,position:"relative",height:18}}>
+                        {months.map((m,mi)=>(<div key={mi} style={{position:"absolute",left:`${m.pct}%`,top:0,bottom:0,width:1,background:X.borderLight}}/>))}
+                        <div style={{position:"absolute",left:`${l}%`,width:`${w}%`,height:"100%",borderRadius:4,background:`${p.color}20`,border:`1px solid ${p.color}30`,minWidth:6}}/>
+                        <div style={{position:"absolute",left:`${l}%`,width:`${w*p.avg/100}%`,height:"100%",borderRadius:4,background:p.color,opacity:p.avg===100?0.4:0.7,minWidth:p.avg>0?4:0}}/>
+                        {w>5&&<div style={{position:"absolute",left:`${l+w+0.5}%`,top:2,fontSize:14,fontFamily:FM,color:p.avg===100?X.green:p.color,fontWeight:600}}>{p.avg}%</div>}
+                      </div>
+                    </div>);
+                  })}
+                  {todayPct>=0&&todayPct<=100&&<div style={{position:"absolute",left:`${130+8}px`,right:0,top:0,bottom:0,pointerEvents:"none"}}><div style={{position:"absolute",left:`${todayPct}%`,top:0,bottom:0,borderLeft:`2px dashed ${X.accent}`,opacity:0.5}}/></div>}
+                </div>
               </div>);
-            })()}
-            {(()=>{
-                const now=new Date();const in30=new Date(now.getTime()+30*864e5);
-                const upcoming=filtered.filter(t=>{if(!t.end||t.status==="已完成")return false;const ed=pD(t.end);return ed>=now&&ed<=in30;}).sort((a,b)=>pD(a.end)-pD(b.end)).slice(0,5);
-                return (<div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
-                  <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 12px",display:"flex",alignItems:"center",gap:8}}><span style={{width:3,height:14,background:X.red,borderRadius:2}}/>Upcoming Deadlines</h3>
-                  {upcoming.length===0?(<div style={{padding:20,textAlign:"center",color:X.textDim,fontSize:14}}>No upcoming deadlines in next 30 days</div>)
-                  :upcoming.map(t=>{const ed=pD(t.end);const days=Math.ceil((ed-now)/864e5);const urgent=days<=7;
-                    return (<div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:`1px solid ${X.border}22`}}>
-                      <span style={{width:6,height:6,borderRadius:"50%",background:pcMap[t.project]||X.accent,flexShrink:0}}/>
-                      <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:14,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.task}</div>
-                        <div style={{fontSize:12,color:X.textDim}}>{t.project} · {t.owner}</div>
-                      </div>
-                      <div style={{textAlign:"right",flexShrink:0}}>
-                        <div style={{fontSize:14,fontWeight:700,fontFamily:FM,color:urgent?X.red:X.amber}}>{days}d</div>
-                        <div style={{fontSize:11,color:X.textDim,fontFamily:FM}}>{fD(t.end)}</div>
-                      </div>
-                    </div>);})}
-                </div>);
             })()}
           </div>
 
-          {/* Row 2 — Summary Zone: Project Progress | Status Distribution */}
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(340px, 1fr))",gap:16,marginTop:16}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
             <div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
               <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 16px",display:"flex",alignItems:"center",gap:8}}><span style={{width:3,height:14,background:X.accent,borderRadius:2}}/>Project Progress</h3>
               {Object.entries(projStats).map(([proj,s])=>{const avg=s.total>0?Math.round(s.pSum/s.total):0;return (
@@ -455,16 +398,17 @@ function Dashboard(){
                   <div style={{height:5,background:X.surfaceLight,borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${avg}%`,background:pcMap[proj],borderRadius:2,opacity:0.8}}/></div>
                 </div>);})}
             </div>
-            <div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
-              <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 12px"}}>Status Distribution</h3>
+            <div style={{display:"flex",flexDirection:"column",gap:16}}>
+              <div style={{background:X.surface,borderRadius:12,padding:16,border:`1px solid ${X.border}`}}>
+                <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 8px"}}>Status Distribution</h3>
                 {(()=>{const entries=Object.entries(SC).map(([k,c])=>({label:k,count:stats[k]||0,color:c.color}));const total=entries.reduce((s,e)=>s+e.count,0);if(!total)return null;
-                  const cx=65,cy=65,R=56,r=38;let ca=-Math.PI/2;const g=0.04;
+                  const cx=100,cy=100,R=90,r=58;let ca=-Math.PI/2;const g=0.04;
                   const arcs=entries.filter(e=>e.count>0).map(e=>{const a=(e.count/total)*Math.PI*2-g,sa=ca+g/2;ca+=a+g;const ea=sa+a,la=a>Math.PI?1:0;
                     const d=`M${cx+R*Math.cos(sa)},${cy+R*Math.sin(sa)} A${R},${R} 0 ${la} 1 ${cx+R*Math.cos(ea)},${cy+R*Math.sin(ea)} L${cx+r*Math.cos(ea)},${cy+r*Math.sin(ea)} A${r},${r} 0 ${la} 0 ${cx+r*Math.cos(sa)},${cy+r*Math.sin(sa)} Z`;
                     return {...e,d,pct:Math.round(e.count/total*100)};});
-                  return (<div style={{display:"flex",alignItems:"center",gap:14}}>
-                    <div style={{position:"relative",width:130,height:130,flexShrink:0}}>
-                      <svg viewBox="0 0 130 130" width="130" height="130">{arcs.map((a,i)=><path key={i} d={a.d} fill={a.color} opacity={0.85}/>)}</svg>
+                  return (<div style={{display:"flex",alignItems:"center",gap:16}}>
+                    <div style={{position:"relative",width:200,height:200,flexShrink:0}}>
+                      <svg viewBox="0 0 200 200" width="200" height="200">{arcs.map((a,i)=><path key={i} d={a.d} fill={a.color} opacity={0.85}/>)}</svg>
                       <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",textAlign:"center"}}>
                         <div style={{fontFamily:FM,fontSize:24,fontWeight:700,lineHeight:1}}>{total}</div>
                         <div style={{fontSize:14,color:X.textDim,marginTop:2}}>Total</div>
@@ -479,92 +423,21 @@ function Dashboard(){
                       </div>))}
                     </div>
                   </div>);
-              })()}
-            </div>
-          </div>
-
-          {/* Row 3 — Project Timeline (full width) */}
-          <div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`,marginTop:16}}>
-            <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 16px",display:"flex",alignItems:"center",gap:8}}><span style={{width:3,height:14,background:X.accent,borderRadius:2}}/>Project Timeline</h3>
-            {(()=>{
-              const projList=[...new Set(twp.map(d=>d.project))];
-              const projBars=projList.map(pn=>{
-                const pt=twp.filter(d=>d.project===pn&&d.start&&d.end);
-                if(!pt.length) return null;
-                const dates=pt.flatMap(t=>[pD(t.start),pD(t.end)]);
-                const s=new Date(Math.min(...dates)),e=new Date(Math.max(...dates));
-                const avg=Math.round(twp.filter(d=>d.project===pn).reduce((sum,t)=>sum+t.progress,0)/twp.filter(d=>d.project===pn).length);
-                return {name:pn,start:s,end:e,avg,color:pcMap[pn]||X.accent};
-              }).filter(Boolean);
-              if(!projBars.length) return (<div style={{padding:40,textAlign:"center",color:X.textDim}}><div style={{fontSize:32,marginBottom:8,opacity:0.3}}>📅</div><div style={{fontSize:14}}>No timeline data available</div></div>);
-              const allDates=projBars.flatMap(p=>[p.start,p.end]);
-              const mn=new Date(Math.min(...allDates)),mx=new Date(Math.max(...allDates));
-              const td=(mx-mn)/864e5+1;
-              const todayPct=((new Date()-mn)/864e5)/td*100;
-              const months=[];let cur=new Date(mn.getFullYear(),mn.getMonth(),1);
-              while(cur<=mx){const off=Math.max(0,(cur-mn)/864e5);months.push({label:`${cur.getMonth()+1}月`,year:cur.getFullYear(),isJan:cur.getMonth()===0,pct:(off/td)*100});cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);}
-              return (<div>
-                <div style={{display:"flex",marginBottom:4}}>
-                  <div style={{width:130,minWidth:130}}/>
-                  <div style={{flex:1,position:"relative",height:20,overflow:"hidden"}}>
-                    {months.filter((_,i)=>i%2===0).map((m,i)=>(<div key={i} style={{position:"absolute",left:`${m.pct}%`,fontSize:14,color:X.textDim,whiteSpace:"nowrap"}}>{m.isJan?`${m.year}.`:""}{m.label}</div>))}
-                  </div>
-                </div>
-                <div style={{position:"relative"}}>
-                  {projBars.map((p,i)=>{
-                    const l=((p.start-mn)/864e5)/td*100;
-                    const w=Math.max(1,((p.end-p.start)/864e5+1)/td*100);
-                    const fmtD=d=>`${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}`;
-                    return (<div key={p.name} style={{display:"flex",alignItems:"center",height:32,gap:8,position:"relative"}}>
-                      <div style={{width:130,minWidth:130,fontSize:14,color:X.textSec,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textAlign:"right",paddingRight:8,fontWeight:500,display:"flex",alignItems:"center",justifyContent:"flex-end",gap:5}}>
-                        <span style={{width:6,height:6,borderRadius:"50%",background:p.color,flexShrink:0}}/>{p.name}
+                })()}
+              </div>
+              <div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`,flex:1}}>
+                <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 12px"}}>Tasks per Project</h3>
+                {(()=>{const pc=Object.entries(projStats).map(([n,s])=>({name:n,count:s.total})).sort((a,b)=>b.count-a.count);const gm=Math.ceil(Math.max(...pc.map(p=>p.count),1)/2)*2;
+                  return (<div>{pc.map((p,i)=>(<div key={i} style={{display:"flex",alignItems:"center",marginBottom:6}}>
+                    <div style={{width:110,minWidth:110,textAlign:"right",paddingRight:10,fontSize:14,color:X.textSec,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</div>
+                    <div style={{flex:1,height:20,position:"relative"}}>
+                      <div style={{height:"100%",width:`${(p.count/gm)*100}%`,background:`${X.accent}`,borderRadius:4,display:"flex",alignItems:"center",justifyContent:"flex-end",paddingRight:6,minWidth:p.count>0?24:0}}>
+                        <span style={{fontFamily:FM,fontSize:14,fontWeight:600,color:"#fff"}}>{p.count}</span>
                       </div>
-                      <div style={{flex:1,position:"relative",height:18}}>
-                        {months.map((m,mi)=>(<div key={mi} style={{position:"absolute",left:`${m.pct}%`,top:0,bottom:0,width:1,background:X.borderLight}}/>))}
-                        <div onMouseEnter={()=>setOvHover(i)} onMouseLeave={()=>setOvHover(null)} style={{position:"absolute",left:`${l}%`,width:`${w}%`,height:"100%",borderRadius:4,background:`${p.color}20`,border:`1px solid ${p.color}30`,minWidth:6,cursor:"pointer",zIndex:1}}/>
-                        <div style={{position:"absolute",left:`${l}%`,width:`${w*p.avg/100}%`,height:"100%",borderRadius:4,background:p.color,opacity:p.avg===100?0.4:0.7,minWidth:p.avg>0?4:0,pointerEvents:"none"}}/>
-                        {w>5&&<div style={{position:"absolute",left:`${l+w+0.5}%`,top:2,fontSize:14,fontFamily:FM,color:p.avg===100?X.green:p.color,fontWeight:600,pointerEvents:"none"}}>{p.avg}%</div>}
-                        {ovHover===i&&<div style={{position:"absolute",left:`${l}%`,bottom:20,background:X.surface,color:X.text,fontSize:13,padding:"6px 12px",borderRadius:8,whiteSpace:"nowrap",zIndex:30,boxShadow:`0 4px 16px ${X.shadowHeavy}`,border:`1px solid ${X.border}`,pointerEvents:"none"}}>{fmtD(p.start)} → {fmtD(p.end)}　Progress: {p.avg}%</div>}
-                      </div>
-                    </div>);
-                  })}
-                  {todayPct>=0&&todayPct<=100&&<div style={{position:"absolute",left:`${130+8}px`,right:0,top:0,bottom:0,pointerEvents:"none"}}><div style={{position:"absolute",left:`${todayPct}%`,top:0,bottom:0,borderLeft:`2px dashed ${X.accent}`,opacity:0.5}}/></div>}
-                </div>
-              </div>);
-            })()}
-          </div>
-
-          {/* Row 4 — Analysis Zone: Team Workload | Tasks per Project */}
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(340px, 1fr))",gap:16,marginTop:16}}>
-            {(()=>{
-              const ownerMap={};filtered.forEach(t=>{ownerMap[t.owner]=(ownerMap[t.owner]||0)+1;});
-              const owners=Object.entries(ownerMap).map(([n,c])=>({name:n,count:c})).sort((a,b)=>b.count-a.count);
-              const ownerColors=["#0d9488","#6366f1","#d97706","#dc2626","#8b5cf6","#3b82f6","#db2777","#059669","#ef4444","#f59e0b"];
-              const gm=Math.ceil(Math.max(...owners.map(o=>o.count),1)/2)*2;
-              return (<div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
-                <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 12px",display:"flex",alignItems:"center",gap:8}}><span style={{width:3,height:14,background:X.purple,borderRadius:2}}/>Team Workload</h3>
-                {owners.map((o,i)=>(<div key={o.name} style={{display:"flex",alignItems:"center",marginBottom:6}}>
-                  <div style={{width:80,minWidth:80,textAlign:"right",paddingRight:10,fontSize:14,color:X.textSec,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{o.name}</div>
-                  <div style={{flex:1,height:20,position:"relative"}}>
-                    <div style={{height:"100%",width:`${(o.count/gm)*100}%`,background:ownerColors[i%ownerColors.length],borderRadius:4,display:"flex",alignItems:"center",justifyContent:"flex-end",paddingRight:6,minWidth:o.count>0?24:0}}>
-                      <span style={{fontFamily:FM,fontSize:14,fontWeight:600,color:"#fff"}}>{o.count}</span>
                     </div>
-                  </div>
-                </div>))}
-              </div>);
-            })()}
-            <div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
-              <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 12px"}}>Tasks per Project</h3>
-              {(()=>{const pc=Object.entries(projStats).map(([n,s])=>({name:n,count:s.total})).sort((a,b)=>b.count-a.count);const gm=Math.ceil(Math.max(...pc.map(p=>p.count),1)/2)*2;
-                return (<div>{pc.map((p,i)=>(<div key={i} style={{display:"flex",alignItems:"center",marginBottom:6}}>
-                  <div title={p.name} style={{width:150,minWidth:150,textAlign:"right",paddingRight:10,fontSize:14,color:X.textSec,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</div>
-                  <div style={{flex:1,height:20,position:"relative"}}>
-                    <div style={{height:"100%",width:`${(p.count/gm)*100}%`,background:pcMap[p.name]||X.accent,borderRadius:4,display:"flex",alignItems:"center",justifyContent:"flex-end",paddingRight:6,minWidth:p.count>0?24:0}}>
-                      <span style={{fontFamily:FM,fontSize:14,fontWeight:600,color:"#fff"}}>{p.count}</span>
-                    </div>
-                  </div>
-                </div>))}</div>);
-              })()}
+                  </div>))}</div>);
+                })()}
+              </div>
             </div>
           </div>
         </>)}
@@ -602,7 +475,7 @@ function Dashboard(){
                           {icon?<img src={icon} style={{width:36,height:36,objectFit:"cover",borderRadius:10}}/>:pn[0]}
                         </div>
                         <div style={{flex:1}}>
-                          <div style={{fontSize:14,fontWeight:700,lineHeight:1.2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{pn}</div>
+                          <div style={{fontSize:14,fontWeight:700,lineHeight:1.2}}>{pn}</div>
                           <div style={{fontSize:14,color:X.textDim,fontFamily:FM,marginTop:2}}>{pt.length} tasks · {ts.length} subtasks</div>
                         </div>
                         <span style={{fontSize:20,color:X.textDim}}>›</span>
@@ -625,7 +498,7 @@ function Dashboard(){
             </div>
 
             {showArch&&archived.size>0&&(<div style={{marginTop:24}}>
-              <div style={{fontSize:12,fontWeight:700,color:X.textDim,marginBottom:12}}>Archived</div>
+              <div style={{fontSize:14,fontWeight:700,color:X.textDim,marginBottom:12,fontSize:12}}>Archived</div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(340px,1fr))",gap:12}}>
                 {[...archived].map(pn=>{const pt=twp.filter(d=>d.project===pn);if(!pt.length)return null;
                   return (<div key={pn} style={{background:X.surface,borderRadius:12,border:`1px solid ${X.border}`,padding:"14px 20px",display:"flex",alignItems:"center",gap:10,opacity:0.5}}>
@@ -652,24 +525,24 @@ function Dashboard(){
               <div onClick={()=>{setUploadTarget(selProj);fileRef.current?.click();}} style={{width:40,height:40,borderRadius:12,background:icon?"transparent":`${c}20`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:700,color:c,cursor:"pointer",overflow:"hidden",border:icon?"none":`1px dashed ${c}50`}}>
                 {icon?<img src={icon} style={{width:40,height:40,objectFit:"cover",borderRadius:12}}/>:selProj[0]}
               </div>
-              <div style={{flex:1,minWidth:0}}><h2 style={{fontSize:24,fontWeight:700,margin:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{selProj}</h2><div style={{fontSize:14,color:X.textDim,fontFamily:FM,marginTop:2}}>{pt.length} tasks · {ts.length} subtasks · {ds} done</div></div>
+              <div style={{flex:1}}><h2 style={{fontSize:24,fontWeight:700,margin:0}}>{selProj}</h2><div style={{fontSize:14,color:X.textDim,fontFamily:FM,marginTop:2}}>{pt.length} tasks · {ts.length} subtasks · {ds} done</div></div>
               <button onClick={()=>archiveProj(selProj)} style={{background:"transparent",border:`1px solid ${X.amber}50`,borderRadius:20,padding:"6px 14px",fontSize:14,color:X.amber,cursor:"pointer",fontWeight:600}}>Archive</button>
               <button onClick={()=>{if(confirm("Delete?"))deleteProj(selProj);}} style={{background:"transparent",border:`1px solid ${X.red}50`,borderRadius:20,padding:"6px 14px",fontSize:14,color:X.red,cursor:"pointer",fontWeight:600}}>Delete</button>
             </div>
 
             {/* Summary */}
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(200px, 1fr))",gap:16,marginBottom:20}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16,marginBottom:20}}>
               <div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
-                <div style={{fontSize:12,color:X.textDim,marginBottom:6}}>Progress</div>
+                <div style={{fontSize:14,color:X.textDim,marginBottom:6,fontSize:12}}>Progress</div>
                 <div style={{fontSize:44,fontWeight:700,fontFamily:FM,color:avg===100?X.green:X.text,lineHeight:1}}>{avg}%</div>
                 <div style={{height:5,background:X.surfaceLight,borderRadius:2,marginTop:12,overflow:"hidden"}}><div style={{height:"100%",width:`${avg}%`,background:c,borderRadius:2}}/></div>
               </div>
               <div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
-                <div style={{fontSize:12,color:X.textDim,marginBottom:6}}>Subtasks</div>
+                <div style={{fontSize:14,color:X.textDim,marginBottom:6,fontSize:12}}>Subtasks</div>
                 <div style={{fontSize:44,fontWeight:700,fontFamily:FM,color:X.text,lineHeight:1}}>{ds}<span style={{fontSize:17,color:X.textDim}}>/{ts.length}</span></div>
               </div>
               <div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
-                <div style={{fontSize:12,color:X.textDim,marginBottom:6}}>Tasks</div>
+                <div style={{fontSize:14,color:X.textDim,marginBottom:6,fontSize:12}}>Tasks</div>
                 <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:4}}>
                   {Object.entries((() => { const sc = {}; pt.forEach(t => { sc[t.status] = (sc[t.status]||0)+1; }); return sc; })()).map(([st,cnt]) => {
                     const s = SC[st]||{}; return (<span key={st} style={{fontSize:14,fontWeight:600,padding:"2px 8px",borderRadius:10,background:s.bg,color:s.color}}>{st} {cnt}</span>);
@@ -692,8 +565,8 @@ function Dashboard(){
               {showAdd&&(<div style={{padding:"16px 20px",background:X.surfaceLight,borderBottom:`1px solid ${X.accent}30`}}>
                 <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr",gap:8,marginBottom:8}}>
                   <input value={draft.task} onChange={e=>setDraft(p=>({...p,task:e.target.value}))} placeholder="Task name *" onKeyDown={e=>{if(e.key==="Enter")handleAdd();}} style={iS2}/>
-                  <input type="date" value={toISO(draft.start)} onChange={e=>setDraft(p=>({...p,start:fromISO(e.target.value)}))} style={iS2}/>
-                  <input type="date" value={toISO(draft.end)} onChange={e=>setDraft(p=>({...p,end:fromISO(e.target.value)}))} style={iS2}/>
+                  <input value={draft.start} onChange={e=>setDraft(p=>({...p,start:e.target.value}))} placeholder="Start YYYY/MM/DD" style={iS2}/>
+                  <input value={draft.end} onChange={e=>setDraft(p=>({...p,end:e.target.value}))} placeholder="End YYYY/MM/DD" style={iS2}/>
                 </div>
                 <div style={{display:"flex",gap:8}}>
                   <input value={draft.owner} onChange={e=>setDraft(p=>({...p,owner:e.target.value}))} placeholder="Owner" style={{...iS2,flex:1}}/>
@@ -725,7 +598,7 @@ function Dashboard(){
                     <span style={{fontFamily:FM,fontSize:14,color:sub.done?X.green:X.textDim,minWidth:70,textAlign:"right"}}>{sub.done_date?fD(sub.done_date):"\u2014"}</span>
                   </div>))}
                 </div>);})}
-              {!pt.length&&<div style={{padding:60,textAlign:"center",color:X.textDim}}><div style={{fontSize:40,marginBottom:12,opacity:0.3}}>📋</div><div style={{fontSize:16,fontWeight:600,marginBottom:6,color:X.textSec}}>No tasks yet</div><div style={{fontSize:14,marginBottom:16}}>Get started by creating a task for this project</div><button onClick={()=>setShowAdd(true)} style={{background:X.accent,color:"#fff",border:"none",borderRadius:20,padding:"8px 20px",fontSize:14,fontWeight:700,cursor:"pointer"}}>+ Create</button></div>}
+              {!pt.length&&<div style={{padding:"40px 20px",textAlign:"center",color:X.textDim,fontSize:14}}>No tasks yet.</div>}
             </div>
           </div>);
         })()}
@@ -751,10 +624,10 @@ function Dashboard(){
               const doAdd=()=>{if(!draft.task.trim()||!draft.project.trim())return;const dur=(draft.start&&draft.end)?Math.max(1,Math.round((pD(draft.end)-pD(draft.start))/864e5)):null;addTask(draft.project,{task:draft.task,start:draft.start||null,end:draft.end||null,duration:dur,owner:draft.owner,category:draft.category,priority:draft.priority,notes:draft.notes});setDraft({task:"",project:"",start:"",end:"",owner:"—",category:"活動",priority:"中",notes:""});setShowTblAdd(false);};
               return (<div style={{padding:"12px 16px",background:X.surfaceLight,borderBottom:`1px solid ${X.accent}30`}}>
                 <div style={{display:"grid",gridTemplateColumns:"1.5fr 2fr 1fr 1fr",gap:8,marginBottom:8}}>
-                  <div><div style={{fontSize:12,color:X.textDim,marginBottom:3}}>Project *</div><input value={draft.project} onChange={e=>setDraft(p=>({...p,project:e.target.value}))} list="pl" style={iS2}/><datalist id="pl">{[...new Set(allT.map(t=>t.project))].map(p=><option key={p} value={p}/>)}</datalist></div>
-                  <div><div style={{fontSize:12,color:X.textDim,marginBottom:3}}>Task *</div><input value={draft.task} onChange={e=>setDraft(p=>({...p,task:e.target.value}))} onKeyDown={e=>{if(e.key==="Enter")doAdd();}} style={iS2}/></div>
-                  <div><div style={{fontSize:12,color:X.textDim,marginBottom:3}}>Start</div><input type="date" value={toISO(draft.start)} onChange={e=>setDraft(p=>({...p,start:fromISO(e.target.value)}))} style={iS2}/></div>
-                  <div><div style={{fontSize:12,color:X.textDim,marginBottom:3}}>End</div><input type="date" value={toISO(draft.end)} onChange={e=>setDraft(p=>({...p,end:fromISO(e.target.value)}))} style={iS2}/></div>
+                  <div><div style={{fontSize:14,color:X.textDim,marginBottom:3,fontSize:12}}>Project *</div><input value={draft.project} onChange={e=>setDraft(p=>({...p,project:e.target.value}))} list="pl" style={iS2}/><datalist id="pl">{[...new Set(allT.map(t=>t.project))].map(p=><option key={p} value={p}/>)}</datalist></div>
+                  <div><div style={{fontSize:14,color:X.textDim,marginBottom:3,fontSize:12}}>Task *</div><input value={draft.task} onChange={e=>setDraft(p=>({...p,task:e.target.value}))} onKeyDown={e=>{if(e.key==="Enter")doAdd();}} style={iS2}/></div>
+                  <div><div style={{fontSize:14,color:X.textDim,marginBottom:3,fontSize:12}}>Start</div><input value={draft.start} onChange={e=>setDraft(p=>({...p,start:e.target.value}))} placeholder="YYYY/MM/DD" style={iS2}/></div>
+                  <div><div style={{fontSize:14,color:X.textDim,marginBottom:3,fontSize:12}}>End</div><input value={draft.end} onChange={e=>setDraft(p=>({...p,end:e.target.value}))} placeholder="YYYY/MM/DD" style={iS2}/></div>
                 </div>
                 <div style={{display:"flex",gap:8}}>
                   <input value={draft.owner} onChange={e=>setDraft(p=>({...p,owner:e.target.value}))} placeholder="Owner" style={{...iS2,flex:1}}/>
@@ -765,7 +638,7 @@ function Dashboard(){
               </div>);
             })()}
             <div style={{overflowX:"auto"}}>
-              <table style={{width:"100%",borderCollapse:"collapse",fontSize:14,tableLayout:"fixed"}}>
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:14}}>
                 <thead><tr style={{background:X.surfaceLight}}>
                   {[{k:"project",l:"Project"},{k:"task",l:"Task"},{k:"owner",l:"Owner"},{k:"status",l:"Status"},{k:"priority",l:"Pri"},{k:"progress",l:"Progress"},{k:"category",l:"Category"},{k:"start",l:"Start"},{k:"end",l:"End"},{k:"notes",l:"Notes"}].map(col=>(
                     <th key={col.k} onClick={()=>handleSort(col.k)} style={{padding:"10px 8px",textAlign:"left",fontWeight:600,color:X.textDim,fontSize:13,borderBottom:`1px solid ${X.border}`,cursor:"pointer",userSelect:"none",whiteSpace:"nowrap"}}>{col.l}<SI col={col.k}/></th>
@@ -773,20 +646,19 @@ function Dashboard(){
                   <th style={{padding:"10px 6px",width:36,borderBottom:`1px solid ${X.border}`}}/>
                 </tr></thead>
                 <tbody>
-                  {sorted.length===0&&<tr><td colSpan={11} style={{padding:60,textAlign:"center",color:X.textDim}}><div style={{fontSize:40,marginBottom:12,opacity:0.3}}>📊</div><div style={{fontSize:16,fontWeight:600,marginBottom:6,color:X.textSec}}>No tasks found</div><div style={{fontSize:14}}>Try adjusting your filters or create a new task</div></td></tr>}
                   {sorted.map(d=>{const sc=SC[d.status]||{},pc=PC[d.priority]||{};const isE=expanded.has(d.id);const tSubs=allS.filter(s=>s.task_id===d.id);
                     return [
                       <tr key={d.id} style={{borderBottom:`1px solid ${isE?X.border:X.border+"40"}`,cursor:"pointer"}} onClick={()=>toggle(d.id)} onMouseEnter={e=>e.currentTarget.style.background=X.surfaceHover} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                        <td style={{padding:"9px 8px",fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:140}}><span style={{display:"inline-block",width:6,height:6,borderRadius:"50%",background:pcMap[d.project],marginRight:6,verticalAlign:"middle"}}/><EditableCell value={d.project} onSave={v=>updateTask(d.id,"project",v)}/></td>
-                        <td style={{padding:"9px 8px",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><span style={{color:X.textDim,marginRight:6,fontSize:14}}>{isE?"▾":"▸"}</span><EditableCell value={d.task} onSave={v=>updateTask(d.id,"task",v)}/></td>
+                        <td style={{padding:"9px 8px",fontWeight:500,whiteSpace:"nowrap"}}><span style={{display:"inline-block",width:6,height:6,borderRadius:"50%",background:pcMap[d.project],marginRight:6,verticalAlign:"middle"}}/><EditableCell value={d.project} onSave={v=>updateTask(d.id,"project",v)}/></td>
+                        <td style={{padding:"9px 8px",maxWidth:200}}><span style={{color:X.textDim,marginRight:6,fontSize:14}}>{isE?"▾":"▸"}</span><EditableCell value={d.task} onSave={v=>updateTask(d.id,"task",v)}/></td>
                         <td style={{padding:"9px 8px",fontSize:14}}><EditableCell value={d.owner} onSave={v=>updateTask(d.id,"owner",v)} style={{color:X.textSec}}/></td>
                         <td style={{padding:"9px 8px"}}><EditableCell value={d.status} onSave={v=>updateTask(d.id,"status",v)} options={["已完成","進行中","待辦","提案中"]} style={{padding:"2px 8px",borderRadius:10,background:sc.bg,color:sc.color,fontSize:12,fontWeight:600}}/></td>
                         <td style={{padding:"9px 8px"}}><EditableCell value={d.priority} onSave={v=>updateTask(d.id,"priority",v)} options={["高","中","低"]} style={{color:pc.color,fontSize:14,fontWeight:600}}/></td>
                         <td style={{padding:"9px 8px",minWidth:110}}><ProgressBar pct={d.progress} done={d.sDone} total={d.sTotal}/></td>
                         <td style={{padding:"9px 8px"}}><EditableCell value={d.category} onSave={v=>updateTask(d.id,"category",v)} options={["商務合作","活動","播出/開始","行銷","發行","市場展"]} style={{padding:"2px 8px",borderRadius:8,background:X.surfaceLight,color:CC[d.category]||X.textSec,fontSize:14,fontWeight:500}}/></td>
-                        <td style={{padding:"9px 8px"}}><EditableCell value={d.start} onSave={v=>updateTask(d.id,"start",v)} isDate style={{fontFamily:FM,fontSize:14,color:X.text}}/></td>
-                        <td style={{padding:"9px 8px"}}><EditableCell value={d.end} onSave={v=>updateTask(d.id,"end",v)} isDate style={{fontFamily:FM,fontSize:14,color:X.text}}/></td>
-                        <td style={{padding:"9px 8px",maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><EditableCell value={d.notes} onSave={v=>updateTask(d.id,"notes",v)} style={{fontSize:14,color:X.textSec}}/></td>
+                        <td style={{padding:"9px 8px"}}><EditableCell value={d.start} onSave={v=>updateTask(d.id,"start",v)} style={{fontFamily:FM,fontSize:14,color:X.text}}/></td>
+                        <td style={{padding:"9px 8px"}}><EditableCell value={d.end} onSave={v=>updateTask(d.id,"end",v)} style={{fontFamily:FM,fontSize:14,color:X.text}}/></td>
+                        <td style={{padding:"9px 8px",maxWidth:180}}><EditableCell value={d.notes} onSave={v=>updateTask(d.id,"notes",v)} style={{fontSize:14,color:X.textSec}}/></td>
                         <td style={{padding:"6px",textAlign:"center"}}><button onClick={e=>{e.stopPropagation();if(confirm("Delete?"))deleteTask(d.id);}} style={{background:"transparent",border:"none",cursor:"pointer",color:X.red,fontSize:14,padding:"2px 6px"}}>×</button></td>
                       </tr>,
                       ...(isE?tSubs.map(sub=>(
@@ -810,15 +682,16 @@ function Dashboard(){
           </div>
         )}
       </div>
-      {toast&&<div style={{position:"fixed",bottom:32,left:"50%",transform:"translateX(-50%)",zIndex:100,animation:toast.fading?"toastOut 0.3s ease forwards":"toastIn 0.3s ease",display:"flex",alignItems:"center",gap:10,background:X.surface,borderRadius:12,padding:"12px 20px",boxShadow:`0 4px 20px ${X.shadowHeavy}`,border:`1px solid ${X.border}`,maxWidth:"90vw"}}>
-        <div style={{width:4,height:24,borderRadius:2,background:toast.type==="error"?X.red:toast.type==="warn"?X.amber:X.green}}/>
-        <span style={{fontSize:14,fontWeight:500,color:X.text,whiteSpace:"nowrap"}}>{toast.msg}</span>
-      </div>}
     </div>
   );
 }
-
-ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(Dashboard));
-  </script>
-</body>
-</html>
+/*
+  CC Supabase 整合指引：
+  1. 建表 SQL: tasks(id,project,task,status,category,start_date,duration,end_date,owner,priority,notes,sort_order,icon_url)
+     subtasks(id,task_id FK,name,owner,done,done_date,notes,sort_order)
+  2. fetchData → supabase.from('tasks').select('*') + .from('subtasks').select('*')
+  3. updateTask → supabase.from('tasks').update({field:value}).eq('id',taskId)
+  4. toggleSub → supabase.from('subtasks').update({done,done_date}).eq('id',subId)
+  5. addTask/deleteTask/deleteProj → 對應 insert/delete
+  6. icon 上傳 → supabase.storage.from('icons').upload() 取得 URL 存入 tasks.icon_url
+*/
