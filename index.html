@@ -191,7 +191,7 @@ function MiniGantt({tasks,subtasks,height=28,color}) {
   const c=color||X.accent;
   return (
     <div style={{position:"relative",height,overflow:"hidden",borderRadius:4,background:X.surfaceLight}}>
-      <div style={{position:"absolute",left:0,top:0,bottom:0,width:`${totalProg}%`,background:c,opacity:0.25,borderRadius:4}}/>
+      <div style={{position:"absolute",left:0,top:0,bottom:0,width:`${totalProg}%`,background:c,opacity:0.4,borderRadius:4}}/>
       <div style={{position:"absolute",left:0,top:0,bottom:0,width:`${totalProg}%`,borderRadius:4,display:"flex",alignItems:"center",justifyContent:"flex-end",paddingRight:6}}>
         {totalProg>8&&<span style={{fontFamily:FM,fontSize:12,fontWeight:600,color:c}}>{totalProg}%</span>}
       </div>
@@ -365,8 +365,8 @@ function GanttTimeline({tasks,subtasks,fp,fs,fpr,isMobile,timeDim="月"}){
             {rows.map((r,i)=>{
               if(r.type==="h"){const c=pcMap[r.proj]||X.accent; return (<div key={i} style={{height:32,background:`${c}08`,borderTop:i>0?`1px solid ${X.border}`:"none",borderBottom:`1px solid ${c}30`}}/>);}              const bc=pcMap[r.proj],hv=hI===i,dn=r.task.status==="已完成",pp=r.task.status==="提案中"||r.task.status==="待確認";
               return (<div key={i} onMouseEnter={()=>setHI(i)} onMouseLeave={()=>setHI(null)} style={{position:"relative",height:36,background:hv?X.surfaceHover:"transparent",zIndex:1,borderBottom:`1px solid ${X.border}22`}}>
-                <div style={{position:"absolute",left:`${r.l}%`,width:`${r.w}%`,top:8,height:20,borderRadius:10,background:pp?`repeating-linear-gradient(135deg,${bc}18,${bc}18 4px,${bc}08 4px,${bc}08 8px)`:`${bc}15`,border:`1px solid ${bc}25`,minWidth:6}}/>
-                {r.task.progress>0&&<div style={{position:"absolute",left:`${r.l}%`,width:`${r.w*r.task.progress/100}%`,top:8,height:20,borderRadius:10,background:bc,opacity:dn?0.4:0.7,minWidth:4}}/>}
+                <div style={{position:"absolute",left:`${r.l}%`,width:`${r.w}%`,top:8,height:20,borderRadius:10,background:pp?`repeating-linear-gradient(135deg,${bc}28,${bc}28 4px,${bc}15 4px,${bc}15 8px)`:`${bc}30`,border:`1px solid ${bc}40`,minWidth:6}}/>
+                {r.task.progress>0&&<div style={{position:"absolute",left:`${r.l}%`,width:`${r.w*r.task.progress/100}%`,top:8,height:20,borderRadius:10,background:bc,opacity:dn?0.55:0.85,minWidth:4}}/>}
                 {r.task.progress>0&&r.task.progress<100&&r.w>3&&<div style={{position:"absolute",left:`${r.l+r.w*r.task.progress/100+0.4}%`,top:11,fontSize:14,fontFamily:FM,color:bc,fontWeight:600}}>{r.task.progress}%</div>}
                 {dn&&r.w>3&&<div style={{position:"absolute",left:`${r.l+r.w/2}%`,top:11,fontSize:14,fontFamily:FM,color:X.green,fontWeight:700,transform:"translateX(-50%)"}}>100%</div>}
                 {hv&&<div style={{position:"absolute",left:`${Math.min(Math.max(r.l,2),65)}%`,bottom:34,background:X.surfaceLight,color:X.text,fontSize:14,padding:"6px 12px",borderRadius:8,whiteSpace:"nowrap",maxWidth:"90vw",overflow:"hidden",textOverflow:"ellipsis",zIndex:30,boxShadow:`0 4px 16px ${X.shadowHeavy}`,border:`1px solid ${X.border}`}}>{fD(r.task.start)} → {fD(r.task.end)}　{r.task.duration}d　{r.task.progress}%</div>}
@@ -714,8 +714,8 @@ function Dashboard(){
                       </div>
                       <div style={{flex:1,position:"relative",height:18}}>
                         {months.map((m,mi)=>(<div key={mi} style={{position:"absolute",left:`${m.pct}%`,top:0,bottom:0,width:1,background:X.borderLight}}/>))}
-                        <div onMouseEnter={()=>setOvHover(i)} onMouseLeave={()=>setOvHover(null)} style={{position:"absolute",left:`${l}%`,width:`${w}%`,height:"100%",borderRadius:4,background:`${p.color}20`,border:`1px solid ${p.color}30`,minWidth:6,cursor:"pointer",zIndex:1}}/>
-                        <div style={{position:"absolute",left:`${l}%`,width:`${w*p.avg/100}%`,height:"100%",borderRadius:4,background:p.color,opacity:p.avg===100?0.4:0.7,minWidth:p.avg>0?4:0,pointerEvents:"none"}}/>
+                        <div onMouseEnter={()=>setOvHover(i)} onMouseLeave={()=>setOvHover(null)} style={{position:"absolute",left:`${l}%`,width:`${w}%`,height:"100%",borderRadius:4,background:`${p.color}35`,border:`1px solid ${p.color}45`,minWidth:6,cursor:"pointer",zIndex:1}}/>
+                        <div style={{position:"absolute",left:`${l}%`,width:`${w*p.avg/100}%`,height:"100%",borderRadius:4,background:p.color,opacity:p.avg===100?0.55:0.85,minWidth:p.avg>0?4:0,pointerEvents:"none"}}/>
                         {w>5&&<div style={{position:"absolute",left:`${l+w+0.5}%`,top:2,fontSize:14,fontFamily:FM,color:p.avg===100?X.green:p.color,fontWeight:600,pointerEvents:"none"}}>{p.avg}%</div>}
                         {ovHover===i&&<div style={{position:"absolute",left:`${l}%`,bottom:20,background:X.surface,color:X.text,fontSize:13,padding:"6px 12px",borderRadius:8,whiteSpace:"nowrap",zIndex:30,boxShadow:`0 4px 16px ${X.shadowHeavy}`,border:`1px solid ${X.border}`,pointerEvents:"none"}}>{fmtD(p.start)} → {fmtD(p.end)}　Progress: {p.avg}%</div>}
                       </div>
@@ -740,11 +740,11 @@ function Dashboard(){
                     <span style={{width:6,height:6,borderRadius:"50%",background:pcMap[t.project]||X.accent,flexShrink:0}}/>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontSize:14,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.task}</div>
-                      <div style={{fontSize:12,color:X.textDim}}>{t.project} · {t.owner}</div>
+                      <div style={{fontSize:12,color:X.textSec}}>{t.project} · {t.owner}</div>
                     </div>
                     <div style={{textAlign:"right",flexShrink:0}}>
                       <div style={{fontSize:14,fontWeight:700,fontFamily:FM,color:X.red}}>-{days}d</div>
-                      <div style={{fontSize:11,color:X.textDim,fontFamily:FM}}>{fD(t.end)}</div>
+                      <div style={{fontSize:11,color:X.textSec,fontFamily:FM}}>{fD(t.end)}</div>
                     </div>
                   </div>);})}
               </div>);
@@ -760,11 +760,11 @@ function Dashboard(){
                       <span style={{width:6,height:6,borderRadius:"50%",background:pcMap[t.project]||X.accent,flexShrink:0}}/>
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{fontSize:14,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.task}</div>
-                        <div style={{fontSize:12,color:X.textDim}}>{t.project} · {t.owner}</div>
+                        <div style={{fontSize:12,color:X.textSec}}>{t.project} · {t.owner}</div>
                       </div>
                       <div style={{textAlign:"right",flexShrink:0}}>
                         <div style={{fontSize:14,fontWeight:700,fontFamily:FM,color:urgent?X.red:X.amber}}>{days}d</div>
-                        <div style={{fontSize:11,color:X.textDim,fontFamily:FM}}>{fD(t.end)}</div>
+                        <div style={{fontSize:11,color:X.textSec,fontFamily:FM}}>{fD(t.end)}</div>
                       </div>
                     </div>);})}
                 </div>);
@@ -819,7 +819,7 @@ function Dashboard(){
             {(()=>{
               const ownerMap={};filtered.forEach(t=>{ownerMap[t.owner]=(ownerMap[t.owner]||0)+1;});
               const owners=Object.entries(ownerMap).map(([n,c])=>({name:n,count:c})).sort((a,b)=>b.count-a.count);
-              const ownerColors=["#0d9488","#6366f1","#d97706","#dc2626","#8b5cf6","#3b82f6","#db2777","#059669","#ef4444","#f59e0b"];
+              const ownerColors=[X.accent,X.purple,X.amber,X.red,X.green,"#06B6D4",X.pink,X.accentDark,"#8B949E","#D2A8FF"];
               const gm=Math.ceil(Math.max(...owners.map(o=>o.count),1)/2)*2;
               return (<div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
                 <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 12px",display:"flex",alignItems:"center",gap:8}}><span style={{width:3,height:14,background:X.purple,borderRadius:2}}/>Team Workload</h3>
