@@ -227,7 +227,7 @@ function CalendarPicker({value,onChange,showTime=false,autoOpen=false,onClose,st
   const y=viewDate.getFullYear(),mo=viewDate.getMonth();const firstDay=new Date(y,mo,1).getDay();const dim=new Date(y,mo+1,0).getDate();const prevDim=new Date(y,mo,0).getDate();
   const cells=[];for(let i=firstDay-1;i>=0;i--)cells.push({d:prevDim-i,c:false});for(let i=1;i<=dim;i++)cells.push({d:i,c:true});while(cells.length<42)cells.push({d:cells.length-firstDay-dim+1,c:false});
   const selStr=value?value.split(" ")[0]:"";const now=new Date();const todayStr=`${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,"0")}/${String(now.getDate()).padStart(2,"0")}`;
-  const pick=day=>{const ds=`${y}/${String(mo+1).padStart(2,"0")}/${String(day).padStart(2,"0")}`;if(showTime){onChange(ds+" "+timeVal);}else{onChange(ds);setOpen(false);if(onClose)onClose();}};
+  const pick=day=>{const ds=`${y}/${String(mo+1).padStart(2,"0")}/${String(day).padStart(2,"0")}`;onChange(showTime?ds+" "+timeVal:ds);setOpen(false);if(onClose)onClose();};
   const confirmT=()=>{const ds=selStr||`${y}/${String(mo+1).padStart(2,"0")}/${String(now.getDate()).padStart(2,"0")}`;onChange(ds+" "+timeVal);setOpen(false);if(onClose)onClose();};
   const cIS2=getIS2();
   return(<div ref={ref} style={{position:"relative",...style}}>
@@ -257,6 +257,31 @@ function CalendarPicker({value,onChange,showTime=false,autoOpen=false,onClose,st
   </div>);
 }
 
+function TagInput({value,onChange,suggestions=[],placeholder="Add...",style={}}){
+  const[input,setInput]=useState("");
+  const[showSug,setShowSug]=useState(false);
+  const tags=(value&&value!=="—")?value.split(",").map(s=>s.trim()).filter(Boolean):[];
+  const filtered=suggestions.filter(s=>!tags.includes(s)&&s.toLowerCase().includes(input.toLowerCase()));
+  const add=(v)=>{const val=(v||input).trim();if(val&&!tags.includes(val)){onChange([...tags,val].join(","));setInput("");setShowSug(false);}};
+  const remove=idx=>{const nt=tags.filter((_,i)=>i!==idx);onChange(nt.length?nt.join(","):"—");};
+  return(<div style={{position:"relative",...style}}>
+    <div style={{display:"flex",flexWrap:"wrap",gap:4,alignItems:"center",padding:"4px 8px",borderRadius:8,border:`1px solid ${X.border}`,background:X.surface,minHeight:32}}>
+      {tags.map((t,i)=>(<span key={i} style={{display:"inline-flex",alignItems:"center",gap:3,padding:"2px 8px",borderRadius:12,background:`${X.accent}18`,color:X.accent,fontSize:13,fontWeight:500}}>
+        {t}<span onClick={()=>remove(i)} style={{cursor:"pointer",fontSize:14,lineHeight:1,opacity:0.7,marginLeft:2}}>×</span>
+      </span>))}
+      <input value={input} onChange={e=>{setInput(e.target.value);setShowSug(true);}} placeholder={tags.length===0?placeholder:""} onKeyDown={e=>{if((e.key==="Enter"||e.key===",")&&input.trim()){e.preventDefault();add();}if(e.key==="Backspace"&&!input&&tags.length>0)remove(tags.length-1);}} onFocus={()=>setShowSug(true)} onBlur={()=>setTimeout(()=>setShowSug(false),150)} style={{border:"none",outline:"none",background:"transparent",color:X.text,fontSize:13,flex:1,minWidth:60,padding:"2px 0"}}/>
+    </div>
+    {showSug&&filtered.length>0&&<div style={{position:"absolute",top:"100%",left:0,right:0,marginTop:2,background:X.surface,border:`1px solid ${X.border}`,borderRadius:8,maxHeight:120,overflowY:"auto",zIndex:50,boxShadow:`0 4px 12px ${X.shadow}`}}>
+      {filtered.map(s=><div key={s} onMouseDown={()=>add(s)} style={{padding:"6px 12px",fontSize:13,cursor:"pointer",color:X.text}} onMouseEnter={e=>e.currentTarget.style.background=X.surfaceHover} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>{s}</div>)}
+    </div>}
+  </div>);
+}
+
+function OwnerTags({value}){
+  const tags=(value&&value!=="—")?value.split(",").map(s=>s.trim()).filter(Boolean):[value||"—"];
+  return(<span style={{display:"inline-flex",gap:3,flexWrap:"wrap"}}>{tags.map((t,i)=><span key={i} style={{fontSize:12,padding:"1px 6px",borderRadius:8,background:`${X.accent}15`,color:X.textSec}}>{t}</span>)}</span>);
+}
+
 // ── Scale Divisions ──
 function computeScaleDivisions(mn, mx, td, dim) {
   const divs = [];
@@ -264,7 +289,7 @@ function computeScaleDivisions(mn, mx, td, dim) {
     let cur = new Date(mn.getFullYear(), mn.getMonth(), mn.getDate());
     while (cur <= mx) {
       const off = Math.max(0, (cur - mn) / 864e5);
-      divs.push({ label: `${cur.getMonth()+1}/${cur.getDate()}`, year: cur.getFullYear(), isFirst: cur.getDate() === 1, pct: (off / td) * 100 });
+      divs.push({ label: `${cur.getMonth()+1}/${cur.getDate()}`, year: cur.getFullYear(), isFirst: cur.getDate() === 1 && cur.getMonth() === 0, pct: (off / td) * 100 });
       cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + 1);
     }
   } else if (dim === "週") {
@@ -332,10 +357,10 @@ function GanttTimeline({tasks,subtasks,fp,fs,fpr,isMobile,timeDim="月"}){
       <div style={{display:"flex",borderBottom:`1px solid ${X.border}`}}>
         <div className="dash-gantt-hdr" style={{padding:"10px 16px",background:X.surfaceLight,borderRight:`1px solid ${X.border}`,display:"flex",alignItems:"flex-end",fontSize:14,color:X.textDim}}>Project / Task</div>
         <div style={{flex:1,position:"relative",height:44,background:X.surfaceLight}}>
-          {months.map((m,i)=>{const np=i<months.length-1?months[i+1].pct:100;return (
-            <div key={i} style={{position:"absolute",left:`${m.pct}%`,width:`${np-m.pct}%`,height:"100%",borderLeft:`1px solid ${m.isFirst?X.borderLight:X.border}`,display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:"0 0 6px 6px"}}>
-              {m.isFirst&&<div style={{fontFamily:FM,fontSize:12,color:X.textDim,fontWeight:600,marginBottom:2}}>{m.year}</div>}
-              <div style={{fontSize:14,color:X.textSec,fontWeight:500}}>{m.label}</div>
+          {(()=>{const step=timeDim==="日"?7:timeDim==="週"?1:1;return months.filter((_,i)=>i%step===0);})().map((m,i,arr)=>{const np=i<arr.length-1?arr[i+1].pct:100;return (
+            <div key={i} style={{position:"absolute",left:`${m.pct}%`,width:`${np-m.pct}%`,height:"100%",borderLeft:`1px solid ${m.isFirst?X.borderLight:X.border}`,display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:"0 0 6px 6px",overflow:"hidden"}}>
+              {m.isFirst&&<div style={{fontFamily:FM,fontSize:11,color:X.textDim,fontWeight:600,marginBottom:2}}>{m.year}</div>}
+              <div style={{fontSize:12,color:X.textSec,fontWeight:500,whiteSpace:"nowrap"}}>{m.label}</div>
             </div>);})}
         </div>
       </div>
@@ -504,6 +529,11 @@ function Dashboard(){
   const[showCreateProj,setShowCreateProj]=useState(false);const[newProjName,setNewProjName]=useState("");
   const[archived,setArchived]=useState(new Set());const[showArch,setShowArch]=useState(false);
   const[showAdd,setShowAdd]=useState(false);const[showTblAdd,setShowTblAdd]=useState(false);
+  const[configCats,setConfigCats]=useState(["商務合作","活動","播出/開始","行銷","發行","市場展"]);
+  const[configOwners,setConfigOwners]=useState(()=>[...new Set(SEED_TASKS.map(t=>t.owner).filter(o=>o&&o!=="—"))]);
+  const[showSettings,setShowSettings]=useState(false);
+  const[newCat,setNewCat]=useState("");
+  const[newOwner,setNewOwner]=useState("");
   const[draft,setDraft]=useState({task:"",project:"",start:"",end:"",owner:"—",category:"活動",priority:"中",notes:""});
   const[subDraft,setSubDraft]=useState({name:"",owner:"—"});
   const[showSubAdd,setShowSubAdd]=useState(null);
@@ -696,11 +726,13 @@ function Dashboard(){
               const td=(mx-mn)/864e5+1;
               const todayPct=((new Date()-mn)/864e5)/td*100;
               const months=computeScaleDivisions(mn,mx,td,timeDim);
-              return (<div>
+              const ovMinW=timeDim==="日"?Math.max(700,td*3):timeDim==="週"?Math.max(700,Math.ceil(td/7)*45):0;
+              return (<div style={ovMinW>0?{overflowX:"auto"}:{}}>
+              <div style={ovMinW>0?{minWidth:ovMinW}:{}}>
                 <div style={{display:"flex",marginBottom:4}}>
                   <div className="dash-tl-label"/>
-                  <div style={{flex:1,position:"relative",height:20,overflow:"hidden"}}>
-                    {(()=>{const step=timeDim==="日"?7:timeDim==="週"?2:2;return months.filter((_,i)=>i%step===0);})().map((m,i)=>(<div key={i} style={{position:"absolute",left:`${m.pct}%`,fontSize:14,color:X.textDim,whiteSpace:"nowrap"}}>{m.isFirst?`${m.year}.`:""}{m.label}</div>))}
+                  <div style={{flex:1,position:"relative",height:20}}>
+                    {(()=>{const step=timeDim==="日"?7:timeDim==="週"?2:1;return months.filter((_,i)=>i%step===0);})().map((m,i)=>(<div key={i} style={{position:"absolute",left:`${m.pct}%`,fontSize:11,color:X.textDim,whiteSpace:"nowrap"}}>{m.isFirst?`${m.year} `:""}{m.label}</div>))}
                   </div>
                 </div>
                 <div style={{position:"relative"}}>
@@ -723,7 +755,7 @@ function Dashboard(){
                   })}
                   {todayPct>=0&&todayPct<=100&&<div style={{position:"absolute",left:`${130+8}px`,right:0,top:0,bottom:0,pointerEvents:"none"}}><div style={{position:"absolute",left:`${todayPct}%`,top:0,bottom:0,borderLeft:`2px dashed ${X.accent}`,opacity:0.5}}/></div>}
                 </div>
-              </div>);
+              </div></div>);
             })()}
           </div>
 
@@ -940,12 +972,6 @@ function Dashboard(){
               <button onClick={()=>{if(confirm("Delete?"))deleteProj(selProj);}} style={{background:"transparent",border:`1px solid ${X.red}50`,borderRadius:20,padding:"6px 14px",fontSize:14,color:X.red,cursor:"pointer",fontWeight:600}}>Delete</button>
             </div>
 
-            {/* Full Gantt Timeline (top of detail) */}
-            <div style={{marginBottom:20}}>
-              <div style={{marginBottom:8,display:"flex",justifyContent:"flex-end"}}><TimeScaleToggle value={timeDim} onChange={setTimeDim}/></div>
-              <GanttTimeline tasks={twp} subtasks={allS} fp={selProj} fs={"全部"} fpr={"全部"} isMobile={isMobile} timeDim={timeDim} />
-            </div>
-
             {/* Summary + Tasks side by side */}
             <div className="dash-detail-grid" style={{marginBottom:20}}>
               {/* Left: Summary cards */}
@@ -983,10 +1009,10 @@ function Dashboard(){
                 <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr 1fr",gap:8,marginBottom:8}}>
                   <div><div style={{fontSize:12,color:X.textDim,marginBottom:3}}>Start Date</div><CalendarPicker value={draft.start} onChange={v=>setDraft(p=>({...p,start:v}))} showTime/></div>
                   <div><div style={{fontSize:12,color:X.textDim,marginBottom:3}}>End Date</div><CalendarPicker value={draft.end} onChange={v=>setDraft(p=>({...p,end:v}))} showTime/></div>
-                  <div><div style={{fontSize:12,color:X.textDim,marginBottom:3}}>Category</div><select value={draft.category||"活動"} onChange={e=>setDraft(p=>({...p,category:e.target.value}))} style={{...iS2,cursor:"pointer"}}>{["商務合作","活動","播出/開始","行銷","發行","市場展"].map(o=><option key={o}>{o}</option>)}</select></div>
+                  <div><div style={{fontSize:12,color:X.textDim,marginBottom:3}}>Category</div><select value={draft.category||"活動"} onChange={e=>setDraft(p=>({...p,category:e.target.value}))} style={{...iS2,cursor:"pointer"}}>{configCats.map(o=><option key={o}>{o}</option>)}</select></div>
                 </div>
                 <div style={{display:"flex",gap:8,alignItems:"flex-end"}}>
-                  <div style={{flex:1}}><div style={{fontSize:12,color:X.textDim,marginBottom:3}}>Owner</div><input value={draft.owner} onChange={e=>setDraft(p=>({...p,owner:e.target.value}))} placeholder="Owner" style={iS2}/></div>
+                  <div style={{flex:1}}><div style={{fontSize:12,color:X.textDim,marginBottom:3}}>Owner</div><TagInput value={draft.owner} onChange={v=>setDraft(p=>({...p,owner:v}))} suggestions={configOwners} placeholder="Add owner..."/></div>
                   <div style={{flex:1}}><div style={{fontSize:12,color:X.textDim,marginBottom:3}}>Priority</div><select value={draft.priority} onChange={e=>setDraft(p=>({...p,priority:e.target.value}))} style={{...iS2,cursor:"pointer"}}><option>高</option><option>中</option><option>低</option></select></div>
                   <button onClick={handleAdd} disabled={!draft.task.trim()} style={{background:draft.task.trim()?X.accent:X.border,color:"#fff",border:"none",borderRadius:20,padding:"8px 20px",fontSize:14,fontWeight:700,cursor:draft.task.trim()?"pointer":"not-allowed",whiteSpace:"nowrap",height:36}}>Confirm</button>
                 </div>
@@ -998,7 +1024,7 @@ function Dashboard(){
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontSize:14,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{task.task}</div>
                       <div style={{display:"flex",gap:8,alignItems:"center",marginTop:3}}>
-                        <span style={{fontSize:14,color:X.textSec}}>{task.owner}</span><span style={{fontSize:14,color:X.textDim}}>·</span>
+                        <OwnerTags value={task.owner}/><span style={{fontSize:14,color:X.textDim}}>·</span>
                         <span style={{fontFamily:FM,fontSize:14,color:X.textSec}}>{fD(task.start)} → {fD(task.end)}</span>
                       </div>
                     </div>
@@ -1030,6 +1056,12 @@ function Dashboard(){
               {!pt.length&&<div style={{padding:60,textAlign:"center",color:X.textDim}}><div style={{fontSize:40,marginBottom:12,opacity:0.3}}>📋</div><div style={{fontSize:16,fontWeight:600,marginBottom:6,color:X.textSec}}>No tasks yet</div><div style={{fontSize:14,marginBottom:16}}>Get started by creating a task for this project</div><button onClick={()=>setShowAdd(true)} style={{background:X.accent,color:"#fff",border:"none",borderRadius:20,padding:"8px 20px",fontSize:14,fontWeight:700,cursor:"pointer"}}>+ Create</button></div>}
               </div>
             </div>
+
+            {/* Full Gantt Timeline (below summary, conditional) */}
+            {!showAdd && pt.some(t=>t.start) && (<div style={{marginTop:20}}>
+              <div style={{marginBottom:8,display:"flex",justifyContent:"flex-end"}}><TimeScaleToggle value={timeDim} onChange={setTimeDim}/></div>
+              <GanttTimeline tasks={twp} subtasks={allS} fp={selProj} fs={"全部"} fpr={"全部"} isMobile={isMobile} timeDim={timeDim} />
+            </div>)}
 
           </div>);
         })()}
@@ -1078,13 +1110,46 @@ function Dashboard(){
                   <div><div style={{fontSize:12,color:X.textDim,marginBottom:3}}>End</div><CalendarPicker value={draft.end} onChange={v=>setDraft(p=>({...p,end:v}))} showTime/></div>
                 </div>
                 <div style={{display:"flex",gap:8,flexWrap:isMobile?"wrap":"nowrap"}}>
-                  <input value={draft.owner} onChange={e=>setDraft(p=>({...p,owner:e.target.value}))} placeholder="Owner" style={{...iS2,flex:1,minWidth:isMobile?120:undefined}}/>
-                  <select value={draft.category} onChange={e=>setDraft(p=>({...p,category:e.target.value}))} style={{...iS2,flex:1,cursor:"pointer"}}>{["商務合作","活動","播出/開始","行銷","發行","市場展"].map(o=><option key={o}>{o}</option>)}</select>
+                  <div style={{flex:1,minWidth:isMobile?120:undefined}}><TagInput value={draft.owner} onChange={v=>setDraft(p=>({...p,owner:v}))} suggestions={configOwners} placeholder="Add owner..."/></div>
+                  <select value={draft.category} onChange={e=>setDraft(p=>({...p,category:e.target.value}))} style={{...iS2,flex:1,cursor:"pointer"}}>{configCats.map(o=><option key={o}>{o}</option>)}</select>
                   <select value={draft.priority} onChange={e=>setDraft(p=>({...p,priority:e.target.value}))} style={{...iS2,flex:isMobile?1:0.6,cursor:"pointer"}}><option>高</option><option>中</option><option>低</option></select>
                   <button onClick={doAdd} disabled={!draft.task.trim()||!draft.project.trim()} style={{background:(draft.task.trim()&&draft.project.trim())?X.accent:X.border,color:"#fff",border:"none",borderRadius:20,padding:"6px 20px",fontSize:14,fontWeight:700,cursor:(draft.task.trim()&&draft.project.trim())?"pointer":"not-allowed",whiteSpace:"nowrap",...(isMobile?{width:"100%"}:{})}}>Confirm</button>
                 </div>
               </div>);
             })()}
+            {/* Settings Panel */}
+            <div style={{borderBottom:`1px solid ${X.border}`}}>
+              <div onClick={()=>setShowSettings(!showSettings)} style={{padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}} onMouseEnter={e=>e.currentTarget.style.background=X.surfaceHover} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                <span style={{fontSize:13,fontWeight:600,color:X.textSec}}>Settings — Categories & Owners</span>
+                <span style={{fontSize:12,color:X.textDim}}>{showSettings?"▾":"▸"}</span>
+              </div>
+              {showSettings&&<div style={{padding:"12px 16px",background:X.surfaceLight,borderTop:`1px solid ${X.border}`,display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:16}}>
+                <div>
+                  <div style={{fontSize:13,fontWeight:600,color:X.textSec,marginBottom:8}}>Categories</div>
+                  {configCats.map((cat,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
+                    <span style={{width:6,height:6,borderRadius:"50%",background:CC[cat]||X.accent,flexShrink:0}}/>
+                    <span style={{fontSize:14,color:X.text,flex:1}}>{cat}</span>
+                    <button onClick={()=>setConfigCats(p=>p.filter((_,j)=>j!==i))} style={{background:"transparent",border:"none",color:X.red,fontSize:14,cursor:"pointer",padding:"2px 6px",opacity:0.5}}>×</button>
+                  </div>))}
+                  <div style={{display:"flex",gap:6,marginTop:8}}>
+                    <input value={newCat} onChange={e=>setNewCat(e.target.value)} placeholder="New category" onKeyDown={e=>{if(e.key==="Enter"&&newCat.trim()){setConfigCats(p=>[...p,newCat.trim()]);setNewCat("");showToast("Category added","success");}}} style={{...iS2,flex:1,fontSize:13,padding:"5px 10px"}}/>
+                    <button onClick={()=>{if(newCat.trim()){setConfigCats(p=>[...p,newCat.trim()]);setNewCat("");showToast("Category added","success");}}} style={{background:X.accent,color:"#fff",border:"none",borderRadius:16,padding:"4px 14px",fontSize:13,fontWeight:600,cursor:"pointer"}}>+</button>
+                  </div>
+                </div>
+                <div>
+                  <div style={{fontSize:13,fontWeight:600,color:X.textSec,marginBottom:8}}>Owners</div>
+                  {configOwners.map((ow,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
+                    <span style={{width:6,height:6,borderRadius:"50%",background:X.accent,flexShrink:0}}/>
+                    <span style={{fontSize:14,color:X.text,flex:1}}>{ow}</span>
+                    <button onClick={()=>setConfigOwners(p=>p.filter((_,j)=>j!==i))} style={{background:"transparent",border:"none",color:X.red,fontSize:14,cursor:"pointer",padding:"2px 6px",opacity:0.5}}>×</button>
+                  </div>))}
+                  <div style={{display:"flex",gap:6,marginTop:8}}>
+                    <input value={newOwner} onChange={e=>setNewOwner(e.target.value)} placeholder="New owner" onKeyDown={e=>{if(e.key==="Enter"&&newOwner.trim()){setConfigOwners(p=>[...p,newOwner.trim()]);setNewOwner("");showToast("Owner added","success");}}} style={{...iS2,flex:1,fontSize:13,padding:"5px 10px"}}/>
+                    <button onClick={()=>{if(newOwner.trim()){setConfigOwners(p=>[...p,newOwner.trim()]);setNewOwner("");showToast("Owner added","success");}}} style={{background:X.accent,color:"#fff",border:"none",borderRadius:16,padding:"4px 14px",fontSize:13,fontWeight:600,cursor:"pointer"}}>+</button>
+                  </div>
+                </div>
+              </div>}
+            </div>
             {isMobile?(
               /* ── Mobile Card View ── */
               <div style={{padding:12}}>
@@ -1163,7 +1228,7 @@ function Dashboard(){
                           <td style={{padding:"9px 8px"}}><EditableCell value={d.status} onSave={v=>updateTask(d.id,"status",v)} options={["已完成","進行中","待辦","提案中","待確認"]} style={{padding:"2px 8px",borderRadius:10,background:sc.bg,color:sc.color,fontSize:12,fontWeight:600}}/></td>
                           <td style={{padding:"9px 8px"}}><EditableCell value={d.priority} onSave={v=>updateTask(d.id,"priority",v)} options={["高","中","低"]} style={{color:pc.color,fontSize:14,fontWeight:600}}/></td>
                           <td style={{padding:"9px 8px",minWidth:110}}><ProgressBar pct={d.progress} done={d.sDone} total={d.sTotal}/></td>
-                          <td style={{padding:"9px 8px"}}><EditableCell value={d.category} onSave={v=>updateTask(d.id,"category",v)} options={["商務合作","活動","播出/開始","行銷","發行","市場展"]} style={{padding:"2px 8px",borderRadius:8,background:X.surfaceLight,color:CC[d.category]||X.textSec,fontSize:14,fontWeight:500}}/></td>
+                          <td style={{padding:"9px 8px"}}><EditableCell value={d.category} onSave={v=>updateTask(d.id,"category",v)} options={configCats} style={{padding:"2px 8px",borderRadius:8,background:X.surfaceLight,color:CC[d.category]||X.textSec,fontSize:14,fontWeight:500}}/></td>
                           <td style={{padding:"9px 8px"}}><EditableCell value={d.start} onSave={v=>updateTask(d.id,"start",v)} isDate style={{fontFamily:FM,fontSize:14,color:X.text}}/></td>
                           <td style={{padding:"9px 8px"}}><EditableCell value={d.end} onSave={v=>updateTask(d.id,"end",v)} isDate style={{fontFamily:FM,fontSize:14,color:X.text}}/></td>
                           <td style={{padding:"9px 8px",maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><EditableCell value={d.notes} onSave={v=>updateTask(d.id,"notes",v)} style={{fontSize:14,color:X.textSec}}/></td>
