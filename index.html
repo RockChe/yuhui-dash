@@ -282,6 +282,93 @@ function OwnerTags({value}){
   return(<span style={{display:"inline-flex",gap:3,flexWrap:"wrap"}}>{tags.map((t,i)=><span key={i} style={{fontSize:12,padding:"1px 6px",borderRadius:8,background:`${X.accent}15`,color:X.textSec}}>{t}</span>)}</span>);
 }
 
+// ── Task Modal (Trello-style) ──
+function TaskModal({task,project,onClose,addTask,updateTask,allS,addSub,deleteSub,toggleSub,configCats,configOwners}){
+  const isNew=task==="new";
+  const[form,setForm]=useState(()=>isNew?{task:"",start:"",end:"",category:"活動",priority:"中",owner:"—",status:"待辦",notes:""}:{task:task.task||"",start:task.start||"",end:task.end||"",category:task.category||"活動",priority:task.priority||"中",owner:task.owner||"—",status:task.status||"待辦",notes:task.notes||""});
+  const[subDraft,setSubDraft]=useState({name:"",owner:"—"});
+  const[showSubInput,setShowSubInput]=useState(false);
+  const tSubs=isNew?[]:allS.filter(s=>s.task_id===task.id);
+  const iS2=getIS2();
+  useEffect(()=>{const h=e=>{if(e.key==="Escape")onClose();};document.addEventListener("keydown",h);return()=>document.removeEventListener("keydown",h);},[onClose]);
+  const handleConfirm=()=>{
+    if(!form.task.trim())return;
+    if(isNew){
+      const dur=(form.start&&form.end)?Math.max(1,Math.ceil((pD(form.end)-pD(form.start))/864e5)):null;
+      addTask(project,{task:form.task,start:form.start||null,end:form.end||null,duration:dur,owner:form.owner,category:form.category,priority:form.priority,notes:form.notes});
+    }else{
+      ["task","start","end","category","priority","owner","status","notes"].forEach(f=>{
+        const orig=task[f]||"";const cur=form[f]||"";
+        if(orig!==cur)updateTask(task.id,f,(f==="start"||f==="end")?(cur||null):cur);
+      });
+      if(form.start&&form.end){const dur=Math.max(1,Math.ceil((pD(form.end)-pD(form.start))/864e5));updateTask(task.id,"duration",dur);}
+    }
+    onClose();
+  };
+  return(
+    <div onClick={onClose} style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.5)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:X.surface,borderRadius:16,width:"100%",maxWidth:560,maxHeight:"90vh",overflowY:"auto",boxShadow:`0 16px 48px ${X.shadowHeavy}`,border:`1px solid ${X.border}`}}>
+        <div style={{padding:"16px 20px",borderBottom:`1px solid ${X.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <span style={{fontSize:16,fontWeight:700}}>{isNew?"Create Task":"Edit Task"}</span>
+          <button onClick={onClose} style={{background:"transparent",border:"none",fontSize:20,color:X.textDim,cursor:"pointer",padding:"2px 6px",lineHeight:1}}>×</button>
+        </div>
+        <div style={{padding:20,display:"flex",flexDirection:"column",gap:14}}>
+          <div>
+            <div style={{fontSize:12,color:X.textDim,marginBottom:4}}>Task Name *</div>
+            <input value={form.task} onChange={e=>setForm(p=>({...p,task:e.target.value}))} placeholder="Enter task name" autoFocus style={{...iS2,fontSize:15,padding:"8px 12px"}}/>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            <div><div style={{fontSize:12,color:X.textDim,marginBottom:4}}>Start Date</div><CalendarPicker value={form.start} onChange={v=>setForm(p=>({...p,start:v}))} showTime/></div>
+            <div><div style={{fontSize:12,color:X.textDim,marginBottom:4}}>End Date</div><CalendarPicker value={form.end} onChange={v=>setForm(p=>({...p,end:v}))} showTime/></div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            <div><div style={{fontSize:12,color:X.textDim,marginBottom:4}}>Category</div><select value={form.category} onChange={e=>setForm(p=>({...p,category:e.target.value}))} style={{...iS2,cursor:"pointer"}}>{configCats.map(o=><option key={o}>{o}</option>)}</select></div>
+            <div><div style={{fontSize:12,color:X.textDim,marginBottom:4}}>Priority</div><select value={form.priority} onChange={e=>setForm(p=>({...p,priority:e.target.value}))} style={{...iS2,cursor:"pointer"}}><option>高</option><option>中</option><option>低</option></select></div>
+          </div>
+          <div>
+            <div style={{fontSize:12,color:X.textDim,marginBottom:4}}>Owner</div>
+            <TagInput value={form.owner} onChange={v=>setForm(p=>({...p,owner:v}))} suggestions={configOwners} placeholder="Add owner..."/>
+          </div>
+          {!isNew&&<div>
+            <div style={{fontSize:12,color:X.textDim,marginBottom:4}}>Status</div>
+            <select value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))} style={{...iS2,cursor:"pointer"}}>
+              {["已完成","進行中","待辦","提案中","待確認"].map(o=><option key={o}>{o}</option>)}
+            </select>
+          </div>}
+          <div>
+            <div style={{fontSize:12,color:X.textDim,marginBottom:4}}>Notes</div>
+            <textarea value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} rows={3} style={{...iS2,resize:"vertical",minHeight:60}}/>
+          </div>
+          {!isNew&&<div>
+            <div style={{fontSize:12,color:X.textDim,marginBottom:8,paddingTop:8,borderTop:`1px solid ${X.border}`}}>Subtasks</div>
+            {tSubs.map(sub=>(
+              <div key={sub.id} style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                <span onClick={()=>toggleSub(sub.id)} style={{width:16,height:16,borderRadius:4,flexShrink:0,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:10,background:sub.done?X.green:"transparent",border:sub.done?"none":`1.5px solid ${X.border}`,color:"#fff",cursor:"pointer"}}>{sub.done?"✓":""}</span>
+                <span style={{fontSize:14,color:X.textSec,textDecoration:sub.done?"line-through":"none",opacity:sub.done?0.5:1,flex:1}}>{sub.name}</span>
+                <span style={{fontSize:13,color:X.textDim}}>{sub.owner}</span>
+                <button onClick={()=>deleteSub(sub.id)} style={{background:"transparent",border:"none",color:X.red,fontSize:14,cursor:"pointer",padding:"2px 6px",opacity:0.6}}>×</button>
+              </div>
+            ))}
+            {showSubInput
+              ?<div style={{display:"flex",gap:6,alignItems:"center",marginTop:4,flexWrap:"wrap"}}>
+                <input value={subDraft.name} onChange={e=>setSubDraft(p=>({...p,name:e.target.value}))} placeholder="Subtask name" autoFocus onKeyDown={e=>{if(e.key==="Enter"&&subDraft.name.trim()){addSub(task.id,{name:subDraft.name,owner:subDraft.owner});setSubDraft({name:"",owner:"—"});setShowSubInput(false);}if(e.key==="Escape")setShowSubInput(false);}} style={{...iS2,flex:1,fontSize:13,padding:"5px 10px",minWidth:120}}/>
+                <input value={subDraft.owner} onChange={e=>setSubDraft(p=>({...p,owner:e.target.value}))} placeholder="Owner" style={{...iS2,width:100,fontSize:13,padding:"5px 10px"}}/>
+                <button onClick={()=>{if(subDraft.name.trim()){addSub(task.id,{name:subDraft.name,owner:subDraft.owner});setSubDraft({name:"",owner:"—"});setShowSubInput(false);}}} style={{background:X.accent,color:"#fff",border:"none",borderRadius:16,padding:"4px 14px",fontSize:13,fontWeight:600,cursor:"pointer"}}>Add</button>
+                <button onClick={()=>setShowSubInput(false)} style={{background:"transparent",border:`1px solid ${X.border}`,borderRadius:16,padding:"4px 10px",fontSize:13,color:X.textSec,cursor:"pointer"}}>Cancel</button>
+              </div>
+              :<button onClick={()=>{setShowSubInput(true);setSubDraft({name:"",owner:"—"});}} style={{background:"transparent",border:"none",color:X.accent,fontSize:13,fontWeight:500,cursor:"pointer",padding:"4px 0"}}>+ Add subtask</button>
+            }
+          </div>}
+        </div>
+        <div style={{padding:"12px 20px",borderTop:`1px solid ${X.border}`,display:"flex",justifyContent:"flex-end",gap:8}}>
+          <button onClick={onClose} style={{background:X.surface,color:X.textSec,border:`1px solid ${X.border}`,borderRadius:20,padding:"8px 20px",fontSize:14,cursor:"pointer"}}>Cancel</button>
+          <button onClick={handleConfirm} disabled={!form.task.trim()} style={{background:form.task.trim()?X.accent:X.border,color:"#fff",border:"none",borderRadius:20,padding:"8px 20px",fontSize:14,fontWeight:700,cursor:form.task.trim()?"pointer":"not-allowed"}}>Confirm</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Scale Divisions ──
 function computeScaleDivisions(mn, mx, td, dim) {
   const divs = [];
@@ -529,6 +616,8 @@ function Dashboard(){
   const[showCreateProj,setShowCreateProj]=useState(false);const[newProjName,setNewProjName]=useState("");
   const[archived,setArchived]=useState(new Set());const[showArch,setShowArch]=useState(false);
   const[showAdd,setShowAdd]=useState(false);const[showTblAdd,setShowTblAdd]=useState(false);
+  const[customProjects,setCustomProjects]=useState(new Set());
+  const[modalTask,setModalTask]=useState(null);
   const[configCats,setConfigCats]=useState(["商務合作","活動","播出/開始","行銷","發行","市場展"]);
   const[configOwners,setConfigOwners]=useState(()=>[...new Set(SEED_TASKS.map(t=>t.owner).filter(o=>o&&o!=="—"))]);
   const[showSettings,setShowSettings]=useState(false);
@@ -568,8 +657,8 @@ function Dashboard(){
   const deleteSub=useCallback(id=>{setAllS(p=>p.filter(s=>s.id!==id));showToast("Subtask deleted","error");},[showToast]);
   const archiveProj=useCallback(p=>{setArchived(prev=>{const n=new Set(prev);n.add(p);return n;});setSelProj(null);showToast("Project archived","warn");},[showToast]);
   const unarchiveProj=useCallback(p=>{setArchived(prev=>{const n=new Set(prev);n.delete(p);return n;});showToast("Project unarchived","success");},[showToast]);
-  const deleteProj=useCallback(p=>{const ids=allT.filter(t=>t.project===p).map(t=>t.id);setAllT(prev=>prev.filter(t=>t.project!==p));setAllS(prev=>prev.filter(s=>!ids.includes(s.task_id)));setSelProj(null);showToast("Project deleted","error");},[allT,showToast]);
-  const createProj=useCallback(name=>{if(!name.trim())return;const mx=allT.reduce((m,t)=>{const n=parseInt(t.id.replace("T",""));return n>m?n:m;},0);const ms=allT.reduce((m,t)=>t.sort_order>m?t.sort_order:m,0);setAllT(p=>[...p,{id:`T${String(mx+1).padStart(2,"0")}`,project:name.trim(),task:"（New task）",status:"待辦",category:"活動",start:null,duration:null,end:null,owner:"—",priority:"中",notes:"",sort_order:ms+1}]);setShowCreateProj(false);setNewProjName("");setSelProj(name.trim());showToast("Project created","success");},[allT,showToast]);
+  const deleteProj=useCallback(p=>{const ids=allT.filter(t=>t.project===p).map(t=>t.id);setAllT(prev=>prev.filter(t=>t.project!==p));setAllS(prev=>prev.filter(s=>!ids.includes(s.task_id)));setCustomProjects(prev=>{const n=new Set(prev);n.delete(p);return n;});setSelProj(null);showToast("Project deleted","error");},[allT,showToast]);
+  const createProj=useCallback(name=>{if(!name.trim())return;setCustomProjects(p=>{const n=new Set(p);n.add(name.trim());return n;});setShowCreateProj(false);setNewProjName("");setSelProj(name.trim());showToast("Project created","success");},[showToast]);
 
   const handleIconUpload=(e,proj)=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=(ev)=>{setProjIcons(p=>({...p,[proj]:ev.target.result}));};reader.readAsDataURL(file);};
 
@@ -586,7 +675,8 @@ function Dashboard(){
 
   const handleSort=col=>{if(sortCol===col)setSortDir(d=>d==="asc"?"desc":"asc");else{setSortCol(col);setSortDir("asc");}};
   const SI=({col})=>sortCol!==col?<span style={{opacity:0.3,marginLeft:3}}>↕</span>:<span style={{marginLeft:3,color:X.accent}}>{sortDir==="asc"?"↑":"↓"}</span>;
-  const pcMap={};[...new Set(twp.map(d=>d.project))].forEach((p,i)=>{pcMap[p]=PJC[i%PJC.length];});
+  const allProjNames=useMemo(()=>[...new Set([...twp.map(d=>d.project),...customProjects])],[twp,customProjects]);
+  const pcMap={};allProjNames.forEach((p,i)=>{pcMap[p]=PJC[i%PJC.length];});
 
   const handleImport=e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=ev=>{const imported=parseCSV(ev.target.result);if(imported.length){const mx=allT.reduce((m,t)=>{const n=parseInt(t.id.replace("T",""));return n>m?n:m;},0);const ms=allT.reduce((m,t)=>t.sort_order>m?t.sort_order:m,0);const withIds=imported.map((t,i)=>({...t,id:t.id||`T${String(mx+1+i).padStart(2,"0")}`,sort_order:ms+1+i}));setAllT(p=>[...p,...withIds]);showToast(`${imported.length} tasks imported`,"success");}};reader.readAsText(file);e.target.value="";};
 
@@ -687,7 +777,7 @@ function Dashboard(){
 
         {/* Project filter tags (below status cards) */}
         <div style={{display:"flex",gap:6,marginBottom:isMobile?12:20,alignItems:"center",...(isMobile?{overflowX:"auto",flexWrap:"nowrap",WebkitOverflowScrolling:"touch",paddingBottom:4}:{flexWrap:"wrap"})}}>
-          {[...new Set(twp.map(d=>d.project))].map(p => {const a=fpSet.has(p);const cl=pcMap[p]||X.accent;return (
+          {allProjNames.map(p => {const a=fpSet.has(p);const cl=pcMap[p]||X.accent;return (
             <button key={p} onClick={()=>toggleFP(p)} style={{padding:"5px 12px",borderRadius:20,border:a?`2px solid ${cl}`:`1px solid ${X.border}`,background:a?`${cl}18`:X.surface,color:a?cl:X.textSec,fontSize:isMobile?13:14,fontWeight:a?600:400,cursor:"pointer",display:"flex",alignItems:"center",gap:4,flexShrink:0,whiteSpace:"nowrap"}}>
               <span style={{width:6,height:6,borderRadius:"50%",background:cl,opacity:a?1:0.4}}/>
               {p}
@@ -900,7 +990,7 @@ function Dashboard(){
             </div>
 
             <div className="dash-grid-cards">
-              {[...new Set(twp.map(d=>d.project))].filter(p=>!archived.has(p)).map(pn=>{
+              {allProjNames.filter(p=>!archived.has(p)).map(pn=>{
                 const pt=twp.filter(d=>d.project===pn);const c=pcMap[pn]||X.accent;
                 const ts=allS.filter(s=>pt.some(t=>t.id===s.task_id));const ds=ts.filter(s=>s.done).length;
                 const avg=pt.length>0?Math.round(pt.reduce((s,t)=>s+t.progress,0)/pt.length):0;
@@ -960,10 +1050,9 @@ function Dashboard(){
           const c=pcMap[selProj]||X.accent;const ts=allS.filter(s=>pt.some(t=>t.id===s.task_id));const ds=ts.filter(s=>s.done).length;
           const avg=pt.length>0?Math.round(pt.reduce((s,t)=>s+t.progress,0)/pt.length):0;
           const icon=projIcons[selProj];
-          const handleAdd=()=>{if(!draft.task.trim())return;const dur=(draft.start&&draft.end)?Math.max(1,Math.ceil((pD(draft.end)-pD(draft.start))/864e5)):null;addTask(selProj,{task:draft.task,start:draft.start||null,end:draft.end||null,duration:dur,owner:draft.owner,category:draft.category,priority:draft.priority,notes:draft.notes});setDraft({task:"",project:"",start:"",end:"",owner:"—",category:"活動",priority:"中",notes:""});setShowAdd(false);};
           return (<div>
             <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20,flexWrap:"wrap"}}>
-              <button onClick={()=>{setSelProj(null);setShowAdd(false);}} style={{background:X.surface,border:`1px solid ${X.border}`,borderRadius:20,padding:"6px 14px",fontSize:14,color:X.textSec,cursor:"pointer"}}>← Back</button>
+              <button onClick={()=>{setSelProj(null);}} style={{background:X.surface,border:`1px solid ${X.border}`,borderRadius:20,padding:"6px 14px",fontSize:14,color:X.textSec,cursor:"pointer"}}>← Back</button>
               <div onClick={()=>{setUploadTarget(selProj);fileRef.current?.click();}} style={{width:40,height:40,borderRadius:12,background:icon?"transparent":`${c}20`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:700,color:c,cursor:"pointer",overflow:"hidden",border:icon?"none":`1px dashed ${c}50`}}>
                 {icon?<img src={icon} style={{width:40,height:40,objectFit:"cover",borderRadius:12}}/>:selProj[0]}
               </div>
@@ -971,6 +1060,12 @@ function Dashboard(){
               <button onClick={()=>archiveProj(selProj)} style={{background:"transparent",border:`1px solid ${X.amber}50`,borderRadius:20,padding:"6px 14px",fontSize:14,color:X.amber,cursor:"pointer",fontWeight:600}}>Archive</button>
               <button onClick={()=>{if(confirm("Delete?"))deleteProj(selProj);}} style={{background:"transparent",border:`1px solid ${X.red}50`,borderRadius:20,padding:"6px 14px",fontSize:14,color:X.red,cursor:"pointer",fontWeight:600}}>Delete</button>
             </div>
+
+            {/* Timeline at top (when tasks have dates) */}
+            {pt.some(t=>t.start) && (<div style={{marginBottom:20}}>
+              <div style={{marginBottom:8,display:"flex",justifyContent:"flex-end"}}><TimeScaleToggle value={timeDim} onChange={setTimeDim}/></div>
+              <GanttTimeline tasks={twp} subtasks={allS} fp={selProj} fs={"全部"} fpr={"全部"} isMobile={isMobile} timeDim={timeDim} />
+            </div>)}
 
             {/* Summary + Tasks side by side */}
             <div className="dash-detail-grid" style={{marginBottom:20}}>
@@ -995,32 +1090,15 @@ function Dashboard(){
                 </div>
               </div>
 
-              {/* Right: Task list */}
+              {/* Right: Task list (click row to edit via modal) */}
               <div style={{background:X.surface,borderRadius:12,border:`1px solid ${X.border}`,overflow:"hidden"}}>
               <div style={{padding:"12px 20px",borderBottom:`1px solid ${X.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                 <span style={{fontSize:14,fontWeight:700}}>Tasks</span>
-                <button onClick={()=>setShowAdd(!showAdd)} style={{background:showAdd?X.surfaceLight:X.accent,color:showAdd?X.textSec:"#fff",border:showAdd?`1px solid ${X.border}`:"none",borderRadius:20,padding:"6px 16px",fontSize:14,fontWeight:700,cursor:"pointer"}}>{showAdd?"Cancel":"+ Create"}</button>
+                <button onClick={()=>setModalTask("new")} style={{background:X.accent,color:"#fff",border:"none",borderRadius:20,padding:"6px 16px",fontSize:14,fontWeight:700,cursor:"pointer"}}>+ Create</button>
               </div>
-              {showAdd&&(<div style={{padding:"16px 20px",background:X.surfaceLight,borderBottom:`1px solid ${X.accent}30`}}>
-                <div style={{marginBottom:8}}>
-                  <div style={{fontSize:12,color:X.textDim,marginBottom:3}}>Task Name *</div>
-                  <input value={draft.task} onChange={e=>setDraft(p=>({...p,task:e.target.value}))} placeholder="Enter task name" onKeyDown={e=>{if(e.key==="Enter")handleAdd();}} style={{...iS2,fontSize:15,padding:"8px 12px"}}/>
-                </div>
-                <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr 1fr",gap:8,marginBottom:8}}>
-                  <div><div style={{fontSize:12,color:X.textDim,marginBottom:3}}>Start Date</div><CalendarPicker value={draft.start} onChange={v=>setDraft(p=>({...p,start:v}))} showTime/></div>
-                  <div><div style={{fontSize:12,color:X.textDim,marginBottom:3}}>End Date</div><CalendarPicker value={draft.end} onChange={v=>setDraft(p=>({...p,end:v}))} showTime/></div>
-                  <div><div style={{fontSize:12,color:X.textDim,marginBottom:3}}>Category</div><select value={draft.category||"活動"} onChange={e=>setDraft(p=>({...p,category:e.target.value}))} style={{...iS2,cursor:"pointer"}}>{configCats.map(o=><option key={o}>{o}</option>)}</select></div>
-                </div>
-                <div style={{display:"flex",gap:8,alignItems:"flex-end"}}>
-                  <div style={{flex:1}}><div style={{fontSize:12,color:X.textDim,marginBottom:3}}>Owner</div><TagInput value={draft.owner} onChange={v=>setDraft(p=>({...p,owner:v}))} suggestions={configOwners} placeholder="Add owner..."/></div>
-                  <div style={{flex:1}}><div style={{fontSize:12,color:X.textDim,marginBottom:3}}>Priority</div><select value={draft.priority} onChange={e=>setDraft(p=>({...p,priority:e.target.value}))} style={{...iS2,cursor:"pointer"}}><option>高</option><option>中</option><option>低</option></select></div>
-                  <button onClick={handleAdd} disabled={!draft.task.trim()} style={{background:draft.task.trim()?X.accent:X.border,color:"#fff",border:"none",borderRadius:20,padding:"8px 20px",fontSize:14,fontWeight:700,cursor:draft.task.trim()?"pointer":"not-allowed",whiteSpace:"nowrap",height:36}}>Confirm</button>
-                </div>
-              </div>)}
-              {pt.map(task=>{const sc=SC[task.status]||{},pc=PC[task.priority]||{};const isE=expanded.has(task.id);const tSubs=allS.filter(s=>s.task_id===task.id);return (
+              {pt.map(task=>{const sc=SC[task.status]||{};return (
                 <div key={task.id}>
-                  <div onClick={()=>toggle(task.id)} style={{padding:"12px 20px",borderBottom:`1px solid ${X.border}`,cursor:"pointer",display:"flex",alignItems:"center",gap:12}} onMouseEnter={e=>e.currentTarget.style.background=X.surfaceHover} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                    <span style={{fontSize:14,color:X.textDim,width:14}}>{isE?"▾":"▸"}</span>
+                  <div onClick={()=>setModalTask(task)} style={{padding:"12px 20px",borderBottom:`1px solid ${X.border}`,cursor:"pointer",display:"flex",alignItems:"center",gap:12}} onMouseEnter={e=>e.currentTarget.style.background=X.surfaceHover} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontSize:14,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{task.task}</div>
                       <div style={{display:"flex",gap:8,alignItems:"center",marginTop:3}}>
@@ -1032,36 +1110,10 @@ function Dashboard(){
                     <div style={{width:90}}><ProgressBar pct={task.progress} done={task.sDone} total={task.sTotal}/></div>
                     <button onClick={e=>{e.stopPropagation();if(confirm("Delete?"))deleteTask(task.id);}} style={{background:"transparent",border:"none",color:X.red,fontSize:14,cursor:"pointer",padding:"4px 6px"}}>×</button>
                   </div>
-                  {isE&&tSubs.map(sub=>(<div key={sub.id} style={{padding:"10px 20px 10px 52px",background:X.surfaceLight,borderBottom:`1px solid ${X.border}22`,display:"flex",alignItems:"center",gap:10}}>
-                    <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",flex:1}} onClick={()=>toggleSub(sub.id)}>
-                      <span style={{width:16,height:16,borderRadius:4,flexShrink:0,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:14,background:sub.done?X.green:"transparent",border:sub.done?"none":`1.5px solid ${X.border}`,color:"#fff"}}>{sub.done?"✓":""}</span>
-                      <span style={{fontSize:14,color:X.textSec,textDecoration:sub.done?"line-through":"none",opacity:sub.done?0.5:1}}>{sub.name}</span>
-                    </label>
-                    <span style={{fontSize:14,color:X.textDim}}>{sub.owner}</span>
-                    <span style={{fontFamily:FM,fontSize:14,color:sub.done?X.green:X.textDim,minWidth:70,textAlign:"right"}}>{sub.done_date?fD(sub.done_date):"\u2014"}</span>
-                    <button onClick={e=>{e.stopPropagation();deleteSub(sub.id);}} style={{background:"transparent",border:"none",color:X.red,fontSize:14,cursor:"pointer",padding:"2px 6px",opacity:0.6}}>×</button>
-                  </div>))}
-                  {isE&&(showSubAdd===task.id
-                    ?<div onClick={e=>e.stopPropagation()} style={{padding:isMobile?"8px 14px":"8px 20px 8px 52px",background:X.surfaceLight,borderBottom:`1px solid ${X.border}22`,display:"flex",alignItems:"center",gap:8,flexWrap:isMobile?"wrap":"nowrap"}}>
-                      <input value={subDraft.name} onChange={e=>setSubDraft(p=>({...p,name:e.target.value}))} placeholder="Subtask name" autoFocus onKeyDown={e=>{if(e.key==="Enter"&&subDraft.name.trim()){addSub(task.id,{name:subDraft.name,owner:subDraft.owner});setSubDraft({name:"",owner:"—"});setShowSubAdd(null);}if(e.key==="Escape")setShowSubAdd(null);}} style={{...iS2,flex:1,fontSize:13,padding:"5px 10px",minWidth:isMobile?120:undefined}}/>
-                      <input value={subDraft.owner} onChange={e=>setSubDraft(p=>({...p,owner:e.target.value}))} placeholder="Owner" style={{...iS2,width:isMobile?80:100,fontSize:13,padding:"5px 10px"}}/>
-                      <button onClick={()=>{if(subDraft.name.trim()){addSub(task.id,{name:subDraft.name,owner:subDraft.owner});setSubDraft({name:"",owner:"—"});setShowSubAdd(null);}}} style={{background:X.accent,color:"#fff",border:"none",borderRadius:16,padding:"4px 14px",fontSize:13,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>Add</button>
-                      <button onClick={()=>setShowSubAdd(null)} style={{background:"transparent",border:`1px solid ${X.border}`,borderRadius:16,padding:"4px 12px",fontSize:13,color:X.textSec,cursor:"pointer"}}>Cancel</button>
-                    </div>
-                    :<div onClick={e=>{e.stopPropagation();setShowSubAdd(task.id);setSubDraft({name:"",owner:"—"});}} style={{padding:isMobile?"8px 14px":"8px 20px 8px 52px",background:X.surfaceLight,borderBottom:`1px solid ${X.border}22`,cursor:"pointer",opacity:0.7}} onMouseEnter={e=>e.currentTarget.style.opacity="1"} onMouseLeave={e=>e.currentTarget.style.opacity="0.7"}>
-                      <span style={{fontSize:13,color:X.accent,fontWeight:500}}>+ Add subtask</span>
-                    </div>
-                  )}
                 </div>);})}
-              {!pt.length&&<div style={{padding:60,textAlign:"center",color:X.textDim}}><div style={{fontSize:40,marginBottom:12,opacity:0.3}}>📋</div><div style={{fontSize:16,fontWeight:600,marginBottom:6,color:X.textSec}}>No tasks yet</div><div style={{fontSize:14,marginBottom:16}}>Get started by creating a task for this project</div><button onClick={()=>setShowAdd(true)} style={{background:X.accent,color:"#fff",border:"none",borderRadius:20,padding:"8px 20px",fontSize:14,fontWeight:700,cursor:"pointer"}}>+ Create</button></div>}
+              {!pt.length&&<div style={{padding:60,textAlign:"center",color:X.textDim}}><div style={{fontSize:40,marginBottom:12,opacity:0.3}}>📋</div><div style={{fontSize:16,fontWeight:600,marginBottom:6,color:X.textSec}}>No tasks yet</div><div style={{fontSize:14,marginBottom:16}}>Get started by creating a task for this project</div><button onClick={()=>setModalTask("new")} style={{background:X.accent,color:"#fff",border:"none",borderRadius:20,padding:"8px 20px",fontSize:14,fontWeight:700,cursor:"pointer"}}>+ Create</button></div>}
               </div>
             </div>
-
-            {/* Full Gantt Timeline (below summary, conditional) */}
-            {!showAdd && pt.some(t=>t.start) && (<div style={{marginTop:20}}>
-              <div style={{marginBottom:8,display:"flex",justifyContent:"flex-end"}}><TimeScaleToggle value={timeDim} onChange={setTimeDim}/></div>
-              <GanttTimeline tasks={twp} subtasks={allS} fp={selProj} fs={"全部"} fpr={"全部"} isMobile={isMobile} timeDim={timeDim} />
-            </div>)}
 
           </div>);
         })()}
@@ -1272,6 +1324,7 @@ function Dashboard(){
           </div>
         )}
       </div>
+      {modalTask&&<TaskModal task={modalTask} project={selProj} onClose={()=>setModalTask(null)} addTask={addTask} updateTask={updateTask} allS={allS} addSub={addSub} deleteSub={deleteSub} toggleSub={toggleSub} configCats={configCats} configOwners={configOwners}/>}
       {toast&&<div style={{position:"fixed",bottom:32,left:"50%",transform:"translateX(-50%)",zIndex:100,animation:toast.fading?"toastOut 0.3s ease forwards":"toastIn 0.3s ease",display:"flex",alignItems:"center",gap:10,background:X.surface,borderRadius:12,padding:"12px 20px",boxShadow:`0 4px 20px ${X.shadowHeavy}`,border:`1px solid ${X.border}`,maxWidth:"90vw"}}>
         <div style={{width:4,height:24,borderRadius:2,background:toast.type==="error"?X.red:toast.type==="warn"?X.amber:X.green}}/>
         <span style={{fontSize:14,fontWeight:500,color:X.text,whiteSpace:"nowrap"}}>{toast.msg}</span>
