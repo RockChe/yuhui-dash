@@ -171,7 +171,7 @@ const THEMES = {
     scrollThumb:"#545D68", selectionBg:"#539BF530" },
 };
 const THEME_ORDER = ["dimmed","warm"];
-function mkSC(t){ const a=t.isDark?"25":"15"; return {"已完成":{color:t.green,bg:t.green+a,icon:"✓"},"進行中":{color:t.amber,bg:t.amber+a,icon:"▸"},"待辦":{color:t.accent,bg:t.accent+a,icon:"○"},"提案中":{color:t.pink,bg:t.pink+a,icon:"◇"}}; }
+function mkSC(t){ const a=t.isDark?"25":"15"; return {"已完成":{color:t.green,bg:t.green+a,icon:"✓"},"進行中":{color:t.amber,bg:t.amber+a,icon:"▸"},"待辦":{color:t.accent,bg:t.accent+a,icon:"○"},"提案中":{color:t.pink,bg:t.pink+a,icon:"◇"},"待確認":{color:t.purple,bg:t.purple+a,icon:"?"}}; }
 function mkPC(t){ return {"高":{color:t.red},"中":{color:t.amber},"低":{color:t.textDim}}; }
 function mkCC(t){ return {"商務合作":t.accent,"活動":t.purple,"播出/開始":t.amber,"行銷":"#06B6D4","發行":t.green,"市場展":t.red}; }
 function mkPJC(t){ return [t.accent,t.purple,t.amber,t.red,t.green,"#06B6D4",t.pink]; }
@@ -257,15 +257,64 @@ function CalendarPicker({value,onChange,showTime=false,autoOpen=false,onClose,st
   </div>);
 }
 
+// ── Scale Divisions ──
+function computeScaleDivisions(mn, mx, td, dim) {
+  const divs = [];
+  if (dim === "日") {
+    let cur = new Date(mn.getFullYear(), mn.getMonth(), mn.getDate());
+    while (cur <= mx) {
+      const off = Math.max(0, (cur - mn) / 864e5);
+      divs.push({ label: `${cur.getMonth()+1}/${cur.getDate()}`, year: cur.getFullYear(), isFirst: cur.getDate() === 1, pct: (off / td) * 100 });
+      cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + 1);
+    }
+  } else if (dim === "週") {
+    let cur = new Date(mn.getFullYear(), mn.getMonth(), mn.getDate());
+    const dow = cur.getDay(); cur = new Date(cur.getTime() - ((dow === 0 ? 6 : dow - 1)) * 864e5);
+    while (cur <= mx) {
+      const off = Math.max(0, (cur - mn) / 864e5);
+      divs.push({ label: `${cur.getMonth()+1}/${cur.getDate()}`, year: cur.getFullYear(), isFirst: cur.getMonth() === 0 && cur.getDate() <= 7, pct: (off / td) * 100 });
+      cur = new Date(cur.getTime() + 7 * 864e5);
+    }
+  } else if (dim === "季") {
+    const qStart = m => m - m % 3;
+    let cur = new Date(mn.getFullYear(), qStart(mn.getMonth()), 1);
+    while (cur <= mx) {
+      const off = Math.max(0, (cur - mn) / 864e5);
+      const q = Math.floor(cur.getMonth() / 3) + 1;
+      divs.push({ label: `Q${q}`, year: cur.getFullYear(), isFirst: q === 1, pct: (off / td) * 100 });
+      cur = new Date(cur.getFullYear(), cur.getMonth() + 3, 1);
+    }
+  } else {
+    let cur = new Date(mn.getFullYear(), mn.getMonth(), 1);
+    while (cur <= mx) {
+      const off = Math.max(0, (cur - mn) / 864e5);
+      divs.push({ label: `${cur.getMonth()+1}月`, year: cur.getFullYear(), isFirst: cur.getMonth() === 0, pct: (off / td) * 100 });
+      cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
+    }
+  }
+  return divs;
+}
+
+function TimeScaleToggle({ value, onChange }) {
+  const opts = ["日","週","月","季"];
+  return (
+    <div style={{display:"inline-flex",borderRadius:20,border:`1px solid ${X.border}`,overflow:"hidden",background:X.surfaceLight}}>
+      {opts.map(o => (
+        <button key={o} onClick={() => onChange(o)} style={{padding:"4px 12px",border:"none",background:value===o?X.accent:"transparent",color:value===o?"#fff":X.textSec,fontSize:13,fontWeight:value===o?700:400,cursor:"pointer",transition:"background 0.15s"}}>{o}</button>
+      ))}
+    </div>
+  );
+}
+
 // ── Gantt Timeline ──
-function GanttTimeline({tasks,subtasks,fp,fs,fpr,isMobile}){
-  if(isMobile) return <MobileGanttList tasks={tasks} subtasks={subtasks} fp={fp} fs={fs} fpr={fpr}/>;
+function GanttTimeline({tasks,subtasks,fp,fs,fpr,isMobile,timeDim="月"}){
+  if(isMobile) return <MobileGanttList tasks={tasks} subtasks={subtasks} fp={fp} fs={fs} fpr={fpr} timeDim={timeDim}/>;
   const fil=tasks.filter(d=>{if(!d.start)return false;if(fp instanceof Set){if(fp.size>0&&!fp.has(d.project))return false;}else if(typeof fp==="string"&&fp!=="全部"&&d.project!==fp)return false;if(fs!=="全部"&&d.status!==fs)return false;if(fpr!=="全部"&&d.priority!==fpr)return false;return true;});
   if(!fil.length) return (<div style={{padding:60,textAlign:"center",color:X.textDim}}><div style={{fontSize:40,marginBottom:12,opacity:0.3}}>📅</div><div style={{fontSize:16,fontWeight:600,marginBottom:6,color:X.textSec}}>No timeline data</div><div style={{fontSize:14}}>Try adjusting filters or adding tasks with dates</div></div>);
   const dates=fil.flatMap(d=>[pD(d.start),pD(d.end)]).filter(Boolean);
   const mn=new Date(Math.min(...dates)),mx=new Date(Math.max(...dates)),td=(mx-mn)/864e5+1;
-  const months=[];let cur=new Date(mn.getFullYear(),mn.getMonth(),1);
-  while(cur<=mx){const off=Math.max(0,(cur-mn)/864e5);months.push({label:`${cur.getMonth()+1}月`,year:cur.getFullYear(),isJan:cur.getMonth()===0,pct:(off/td)*100});cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);}
+  const months=computeScaleDivisions(mn,mx,td,timeDim);
+  const ganttMinW=timeDim==="日"?Math.max(700,td*18):timeDim==="週"?Math.max(700,td*4):700;
   const pMap={};fil.forEach(d=>{if(!pMap[d.project])pMap[d.project]=[];pMap[d.project].push(d);});
   const pcMap={};[...new Set(tasks.map(d=>d.project))].forEach((p,i)=>{pcMap[p]=PJC[i%PJC.length];});
   const rows=[];Object.keys(pMap).forEach(proj=>{
@@ -284,8 +333,8 @@ function GanttTimeline({tasks,subtasks,fp,fs,fpr,isMobile}){
         <div className="dash-gantt-hdr" style={{padding:"10px 16px",background:X.surfaceLight,borderRight:`1px solid ${X.border}`,display:"flex",alignItems:"flex-end",fontSize:14,color:X.textDim}}>Project / Task</div>
         <div style={{flex:1,position:"relative",height:44,background:X.surfaceLight}}>
           {months.map((m,i)=>{const np=i<months.length-1?months[i+1].pct:100;return (
-            <div key={i} style={{position:"absolute",left:`${m.pct}%`,width:`${np-m.pct}%`,height:"100%",borderLeft:`1px solid ${m.isJan?X.borderLight:X.border}`,display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:"0 0 6px 6px"}}>
-              {m.isJan&&<div style={{fontFamily:FM,fontSize:12,color:X.textDim,fontWeight:600,marginBottom:2}}>{m.year}</div>}
+            <div key={i} style={{position:"absolute",left:`${m.pct}%`,width:`${np-m.pct}%`,height:"100%",borderLeft:`1px solid ${m.isFirst?X.borderLight:X.border}`,display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:"0 0 6px 6px"}}>
+              {m.isFirst&&<div style={{fontFamily:FM,fontSize:12,color:X.textDim,fontWeight:600,marginBottom:2}}>{m.year}</div>}
               <div style={{fontSize:14,color:X.textSec,fontWeight:500}}>{m.label}</div>
             </div>);})}
         </div>
@@ -308,13 +357,13 @@ function GanttTimeline({tasks,subtasks,fp,fs,fpr,isMobile}){
           })}</div>
         </div>
         <div ref={rR} onScroll={()=>ss(rR,lR)} style={{flex:1,overflowY:"auto",overflowX:"auto"}}>
-          <div className="dash-gantt-chart" style={{position:"relative"}}>
+          <div className="dash-gantt-chart" style={{position:"relative",minWidth:ganttMinW}}>
             <div style={{position:"absolute",top:0,bottom:0,left:0,right:0,pointerEvents:"none"}}>
-              {months.map((m,i)=><div key={i} style={{position:"absolute",left:`${m.pct}%`,top:0,bottom:0,width:1,background:m.isJan?X.borderLight:`${X.border}50`}}/>)}
+              {months.map((m,i)=><div key={i} style={{position:"absolute",left:`${m.pct}%`,top:0,bottom:0,width:1,background:m.isFirst?X.borderLight:`${X.border}50`}}/>)}
               {todayPct>=0&&todayPct<=100&&<div style={{position:"absolute",left:`${todayPct}%`,top:0,bottom:0,borderLeft:`2px dashed ${X.accent}`,zIndex:2,opacity:0.7}}><div style={{background:X.accent,color:"#fff",fontSize:10,padding:"2px 5px",borderRadius:10,fontWeight:700,marginLeft:3,display:"inline-block",position:"sticky",top:2}}>TODAY</div></div>}
             </div>
             {rows.map((r,i)=>{
-              if(r.type==="h"){const c=pcMap[r.proj]||X.accent; return (<div key={i} style={{height:32,background:`${c}08`,borderTop:i>0?`1px solid ${X.border}`:"none",borderBottom:`1px solid ${c}30`}}/>);}              const bc=pcMap[r.proj],hv=hI===i,dn=r.task.status==="已完成",pp=r.task.status==="提案中";
+              if(r.type==="h"){const c=pcMap[r.proj]||X.accent; return (<div key={i} style={{height:32,background:`${c}08`,borderTop:i>0?`1px solid ${X.border}`:"none",borderBottom:`1px solid ${c}30`}}/>);}              const bc=pcMap[r.proj],hv=hI===i,dn=r.task.status==="已完成",pp=r.task.status==="提案中"||r.task.status==="待確認";
               return (<div key={i} onMouseEnter={()=>setHI(i)} onMouseLeave={()=>setHI(null)} style={{position:"relative",height:36,background:hv?X.surfaceHover:"transparent",zIndex:1,borderBottom:`1px solid ${X.border}22`}}>
                 <div style={{position:"absolute",left:`${r.l}%`,width:`${r.w}%`,top:8,height:20,borderRadius:10,background:pp?`repeating-linear-gradient(135deg,${bc}18,${bc}18 4px,${bc}08 4px,${bc}08 8px)`:`${bc}15`,border:`1px solid ${bc}25`,minWidth:6}}/>
                 {r.task.progress>0&&<div style={{position:"absolute",left:`${r.l}%`,width:`${r.w*r.task.progress/100}%`,top:8,height:20,borderRadius:10,background:bc,opacity:dn?0.4:0.7,minWidth:4}}/>}
@@ -383,14 +432,24 @@ function MobileProjectTimeline({ projBars }) {
   );
 }
 
-function MobileGanttList({ tasks, subtasks, fp, fs, fpr }) {
+function MobileGanttList({ tasks, subtasks, fp, fs, fpr, timeDim="月" }) {
   const fil=tasks.filter(d=>{if(!d.start)return false;if(fp instanceof Set){if(fp.size>0&&!fp.has(d.project))return false;}else if(typeof fp==="string"&&fp!=="全部"&&d.project!==fp)return false;if(fs!=="全部"&&d.status!==fs)return false;if(fpr!=="全部"&&d.priority!==fpr)return false;return true;});
   if(!fil.length) return (<div style={{padding:60,textAlign:"center",color:X.textDim}}><div style={{fontSize:40,marginBottom:12,opacity:0.3}}>📅</div><div style={{fontSize:16,fontWeight:600,marginBottom:6,color:X.textSec}}>No timeline data</div><div style={{fontSize:14}}>Try adjusting filters or adding tasks with dates</div></div>);
   const pcMap={};[...new Set(tasks.map(d=>d.project))].forEach((p,i)=>{pcMap[p]=PJC[i%PJC.length];});
   const sorted=[...fil].sort((a,b)=>pD(a.start)-pD(b.start));
   const groups={};const today=new Date();
-  sorted.forEach(t=>{const d=pD(t.start);const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;if(!groups[key])groups[key]={label:`${d.getFullYear()} 年 ${d.getMonth()+1} 月`,tasks:[]};groups[key].tasks.push(t);});
-  const todayKey=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}`;
+  sorted.forEach(t=>{const d=pD(t.start);let key,label;
+    if(timeDim==="日"){key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;label=`${d.getFullYear()} 年 ${d.getMonth()+1} 月 ${d.getDate()} 日`;}
+    else if(timeDim==="週"){const dow=d.getDay();const mon=new Date(d.getTime()-((dow===0?6:dow-1))*864e5);key=`${mon.getFullYear()}-W${String(Math.ceil(((mon-new Date(mon.getFullYear(),0,1))/864e5+1)/7)).padStart(2,"0")}`;label=`${mon.getFullYear()} 年 ${mon.getMonth()+1}/${mon.getDate()} 週`;}
+    else if(timeDim==="季"){const q=Math.floor(d.getMonth()/3)+1;key=`${d.getFullYear()}-Q${q}`;label=`${d.getFullYear()} 年 Q${q}`;}
+    else{key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;label=`${d.getFullYear()} 年 ${d.getMonth()+1} 月`;}
+    if(!groups[key])groups[key]={label,tasks:[]};groups[key].tasks.push(t);});
+  const todayKey=(()=>{
+    if(timeDim==="日")return`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
+    if(timeDim==="週"){const dow=today.getDay();const mon=new Date(today.getTime()-((dow===0?6:dow-1))*864e5);return`${mon.getFullYear()}-W${String(Math.ceil(((mon-new Date(mon.getFullYear(),0,1))/864e5+1)/7)).padStart(2,"0")}`;}
+    if(timeDim==="季"){const q=Math.floor(today.getMonth()/3)+1;return`${today.getFullYear()}-Q${q}`;}
+    return`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}`;
+  })();
   return (
     <div style={{display:"flex",flexDirection:"column",gap:4}}>
       {Object.entries(groups).map(([key,group])=>(
@@ -455,6 +514,7 @@ function Dashboard(){
   const[toast,setToast]=useState(null);const toastTimer=useRef(null);
   const showToast=useCallback((msg,type="success")=>{if(toastTimer.current)clearTimeout(toastTimer.current);setToast({msg,type,fading:false});toastTimer.current=setTimeout(()=>{setToast(prev=>prev?{...prev,fading:true}:null);setTimeout(()=>setToast(null),300);},2200);},[]);
   const[ovHover,setOvHover]=useState(null);
+  const[timeDim,setTimeDim]=useState("月");
   const[themeKey,setThemeKey]=useState(()=>{try{return localStorage.getItem("dash-theme")||"dimmed";}catch{return "dimmed";}});
   X=THEMES[themeKey]||THEMES.dimmed; SC=mkSC(X); PC=mkPC(X); CC=mkCC(X); PJC=mkPJC(X);
   const cycleTheme=useCallback(()=>{setThemeKey(p=>{const i=THEME_ORDER.indexOf(p);return THEME_ORDER[(i+1)%THEME_ORDER.length];});},[]);
@@ -570,7 +630,7 @@ function Dashboard(){
       <div className="dash-content" style={{maxWidth:1400,margin:"0 auto"}}>
         {/* Filters */}
         <div style={{display:"flex",gap:isMobile?6:8,marginBottom:isMobile?12:20,flexWrap:"wrap",alignItems:"center"}}>
-          {["全部","進行中","待辦","已完成","提案中"].map(s=>{const a=fs===s,c=SC[s];return (
+          {["全部","進行中","待辦","已完成","提案中","待確認"].map(s=>{const a=fs===s,c=SC[s];return (
             <button key={s} onClick={()=>setFS(s)} style={{padding:isMobile?"4px 10px":"6px 16px",borderRadius:20,border:a?"none":`1px solid ${X.border}`,background:a?(c?.color||X.textDim):X.surface,color:a?"#fff":X.textSec,fontSize:isMobile?13:14,fontWeight:a?700:400,cursor:"pointer"}}>{s}</button>);})}
           <div style={{width:1,height:20,background:X.border}}/>
           {["全部","高","中","低"].map(p=>{const a=fpr===p,c=PC[p];return (
@@ -615,7 +675,10 @@ function Dashboard(){
         {tab==="overview"&&(<>
           {/* Project Timeline (moved to top) */}
           <div style={{background:X.surface,borderRadius:12,padding:isMobile?14:20,border:`1px solid ${X.border}`,marginBottom:16}}>
-            <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 16px",display:"flex",alignItems:"center",gap:8}}><span style={{width:3,height:14,background:X.accent,borderRadius:2}}/>Project Timeline</h3>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",margin:"0 0 16px",flexWrap:"wrap",gap:8}}>
+              <h3 style={{fontSize:14,fontWeight:700,margin:0,display:"flex",alignItems:"center",gap:8}}><span style={{width:3,height:14,background:X.accent,borderRadius:2}}/>Project Timeline</h3>
+              <TimeScaleToggle value={timeDim} onChange={setTimeDim}/>
+            </div>
             {(()=>{
               const projList=[...new Set(twp.map(d=>d.project))];
               const projBars=projList.map(pn=>{
@@ -632,13 +695,12 @@ function Dashboard(){
               const mn=new Date(Math.min(...allDates)),mx=new Date(Math.max(...allDates));
               const td=(mx-mn)/864e5+1;
               const todayPct=((new Date()-mn)/864e5)/td*100;
-              const months=[];let cur=new Date(mn.getFullYear(),mn.getMonth(),1);
-              while(cur<=mx){const off=Math.max(0,(cur-mn)/864e5);months.push({label:`${cur.getMonth()+1}月`,year:cur.getFullYear(),isJan:cur.getMonth()===0,pct:(off/td)*100});cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);}
+              const months=computeScaleDivisions(mn,mx,td,timeDim);
               return (<div>
                 <div style={{display:"flex",marginBottom:4}}>
                   <div className="dash-tl-label"/>
                   <div style={{flex:1,position:"relative",height:20,overflow:"hidden"}}>
-                    {months.filter((_,i)=>i%2===0).map((m,i)=>(<div key={i} style={{position:"absolute",left:`${m.pct}%`,fontSize:14,color:X.textDim,whiteSpace:"nowrap"}}>{m.isJan?`${m.year}.`:""}{m.label}</div>))}
+                    {(()=>{const step=timeDim==="日"?7:timeDim==="週"?2:2;return months.filter((_,i)=>i%step===0);})().map((m,i)=>(<div key={i} style={{position:"absolute",left:`${m.pct}%`,fontSize:14,color:X.textDim,whiteSpace:"nowrap"}}>{m.isFirst?`${m.year}.`:""}{m.label}</div>))}
                   </div>
                 </div>
                 <div style={{position:"relative"}}>
@@ -849,10 +911,10 @@ function Dashboard(){
               <div style={{fontSize:12,fontWeight:700,color:X.textDim,marginBottom:12}}>Archived</div>
               <div className="dash-grid-2col" style={{gap:12}}>
                 {[...archived].map(pn=>{const pt=twp.filter(d=>d.project===pn);if(!pt.length)return null;
-                  return (<div key={pn} style={{background:X.surface,borderRadius:12,border:`1px solid ${X.border}`,padding:"14px 20px",display:"flex",alignItems:"center",gap:10,opacity:0.5}}>
+                  return (<div key={pn} onClick={()=>setSelProj(pn)} style={{background:X.surface,borderRadius:12,border:`1px solid ${X.border}`,padding:"14px 20px",display:"flex",alignItems:"center",gap:10,opacity:0.5,cursor:"pointer",transition:"opacity 0.2s"}} onMouseEnter={e=>e.currentTarget.style.opacity="0.7"} onMouseLeave={e=>e.currentTarget.style.opacity="0.5"}>
                     <div style={{flex:1}}><div style={{fontSize:14,fontWeight:600}}>{pn}</div><div style={{fontSize:14,color:X.textDim,fontFamily:FM}}>{pt.length} tasks</div></div>
-                    <button onClick={()=>unarchiveProj(pn)} style={{background:X.surfaceLight,border:`1px solid ${X.border}`,borderRadius:20,padding:"4px 12px",fontSize:14,color:X.textSec,cursor:"pointer"}}>Unarchive</button>
-                    <button onClick={()=>{if(confirm("Permanently delete?"))deleteProj(pn);unarchiveProj(pn);}} style={{background:"transparent",border:`1px solid ${X.red}50`,borderRadius:20,padding:"4px 12px",fontSize:14,color:X.red,cursor:"pointer"}}>Delete</button>
+                    <button onClick={e=>{e.stopPropagation();unarchiveProj(pn);}} style={{background:X.surfaceLight,border:`1px solid ${X.border}`,borderRadius:20,padding:"4px 12px",fontSize:14,color:X.textSec,cursor:"pointer"}}>Unarchive</button>
+                    <button onClick={e=>{e.stopPropagation();if(confirm("Permanently delete?"))deleteProj(pn);unarchiveProj(pn);}} style={{background:"transparent",border:`1px solid ${X.red}50`,borderRadius:20,padding:"4px 12px",fontSize:14,color:X.red,cursor:"pointer"}}>Delete</button>
                   </div>);
                 })}
               </div>
@@ -876,6 +938,12 @@ function Dashboard(){
               <div style={{flex:1,minWidth:0}}><h2 style={{fontSize:24,fontWeight:700,margin:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{selProj}</h2><div style={{fontSize:14,color:X.textDim,fontFamily:FM,marginTop:2}}>{pt.length} tasks · {ts.length} subtasks · {ds} done</div></div>
               <button onClick={()=>archiveProj(selProj)} style={{background:"transparent",border:`1px solid ${X.amber}50`,borderRadius:20,padding:"6px 14px",fontSize:14,color:X.amber,cursor:"pointer",fontWeight:600}}>Archive</button>
               <button onClick={()=>{if(confirm("Delete?"))deleteProj(selProj);}} style={{background:"transparent",border:`1px solid ${X.red}50`,borderRadius:20,padding:"6px 14px",fontSize:14,color:X.red,cursor:"pointer",fontWeight:600}}>Delete</button>
+            </div>
+
+            {/* Full Gantt Timeline (top of detail) */}
+            <div style={{marginBottom:20}}>
+              <div style={{marginBottom:8,display:"flex",justifyContent:"flex-end"}}><TimeScaleToggle value={timeDim} onChange={setTimeDim}/></div>
+              <GanttTimeline tasks={twp} subtasks={allS} fp={selProj} fs={"全部"} fpr={"全部"} isMobile={isMobile} timeDim={timeDim} />
             </div>
 
             {/* Summary + Tasks side by side */}
@@ -963,15 +1031,14 @@ function Dashboard(){
               </div>
             </div>
 
-            {/* Full Gantt Timeline */}
-            <div style={{marginBottom:20}}>
-              <GanttTimeline tasks={twp} subtasks={allS} fp={selProj} fs={"全部"} fpr={"全部"} isMobile={isMobile} />
-            </div>
           </div>);
         })()}
 
         {/* ── TIMELINE ── */}
-        {tab==="timeline"&&<GanttTimeline tasks={twp} subtasks={allS} fp={fpSet} fs={fs} fpr={fpr} isMobile={isMobile}/>}
+        {tab==="timeline"&&<>
+          <div style={{marginBottom:12,display:"flex",justifyContent:"flex-end"}}><TimeScaleToggle value={timeDim} onChange={setTimeDim}/></div>
+          <GanttTimeline tasks={twp} subtasks={allS} fp={fpSet} fs={fs} fpr={fpr} isMobile={isMobile} timeDim={timeDim}/>
+        </>}
 
         {/* ── DATA TABLE ── */}
         {tab==="table"&&(
@@ -1093,7 +1160,7 @@ function Dashboard(){
                           <td style={{padding:"9px 8px",fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:140}}><span style={{display:"inline-block",width:6,height:6,borderRadius:"50%",background:pcMap[d.project],marginRight:6,verticalAlign:"middle"}}/><EditableCell value={d.project} onSave={v=>updateTask(d.id,"project",v)}/></td>
                           <td style={{padding:"9px 8px",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><span style={{color:X.textDim,marginRight:6,fontSize:14}}>{isE?"▾":"▸"}</span><EditableCell value={d.task} onSave={v=>updateTask(d.id,"task",v)}/></td>
                           <td style={{padding:"9px 8px",fontSize:14}}><EditableCell value={d.owner} onSave={v=>updateTask(d.id,"owner",v)} style={{color:X.textSec}}/></td>
-                          <td style={{padding:"9px 8px"}}><EditableCell value={d.status} onSave={v=>updateTask(d.id,"status",v)} options={["已完成","進行中","待辦","提案中"]} style={{padding:"2px 8px",borderRadius:10,background:sc.bg,color:sc.color,fontSize:12,fontWeight:600}}/></td>
+                          <td style={{padding:"9px 8px"}}><EditableCell value={d.status} onSave={v=>updateTask(d.id,"status",v)} options={["已完成","進行中","待辦","提案中","待確認"]} style={{padding:"2px 8px",borderRadius:10,background:sc.bg,color:sc.color,fontSize:12,fontWeight:600}}/></td>
                           <td style={{padding:"9px 8px"}}><EditableCell value={d.priority} onSave={v=>updateTask(d.id,"priority",v)} options={["高","中","低"]} style={{color:pc.color,fontSize:14,fontWeight:600}}/></td>
                           <td style={{padding:"9px 8px",minWidth:110}}><ProgressBar pct={d.progress} done={d.sDone} total={d.sTotal}/></td>
                           <td style={{padding:"9px 8px"}}><EditableCell value={d.category} onSave={v=>updateTask(d.id,"category",v)} options={["商務合作","活動","播出/開始","行銷","發行","市場展"]} style={{padding:"2px 8px",borderRadius:8,background:X.surfaceLight,color:CC[d.category]||X.textSec,fontSize:14,fontWeight:500}}/></td>
