@@ -29,6 +29,7 @@
     .dash-chart-svg { width: 200px; height: 200px; flex-shrink: 0; }
     .dash-hdr-right { display: flex; align-items: center; gap: 20px; }
     .dash-gantt-chart { min-width: 700px; }
+    .dash-detail-grid { display: grid; grid-template-columns: minmax(300px,340px) 1fr; gap: 20px; align-items: start; }
 
     @media (max-width: 1024px) {
       .dash-header { padding: 14px 20px; }
@@ -56,6 +57,7 @@
       .dash-chart-svg { width: 160px; height: 160px; }
       .dash-hdr-right { gap: 12px; }
       .dash-gantt-chart { min-width: 500px; }
+      .dash-detail-grid { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 480px) {
@@ -766,48 +768,49 @@ function Dashboard(){
               <button onClick={()=>{if(confirm("Delete?"))deleteProj(selProj);}} style={{background:"transparent",border:`1px solid ${X.red}50`,borderRadius:20,padding:"6px 14px",fontSize:14,color:X.red,cursor:"pointer",fontWeight:600}}>Delete</button>
             </div>
 
-            {/* Summary */}
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(200px, 1fr))",gap:16,marginBottom:20}}>
-              <div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
-                <div style={{fontSize:12,color:X.textDim,marginBottom:6}}>Progress</div>
-                <div className="dash-detail-num" style={{fontWeight:700,fontFamily:FM,color:avg===100?X.green:X.text,lineHeight:1}}>{avg}%</div>
-                <div style={{height:5,background:X.surfaceLight,borderRadius:2,marginTop:12,overflow:"hidden"}}><div style={{height:"100%",width:`${avg}%`,background:c,borderRadius:2}}/></div>
-              </div>
-              <div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
-                <div style={{fontSize:12,color:X.textDim,marginBottom:6}}>Subtasks</div>
-                <div className="dash-detail-num" style={{fontWeight:700,fontFamily:FM,color:X.text,lineHeight:1}}>{ds}<span style={{fontSize:17,color:X.textDim}}>/{ts.length}</span></div>
-              </div>
-              <div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
-                <div style={{fontSize:12,color:X.textDim,marginBottom:6}}>Tasks</div>
-                <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:4}}>
-                  {Object.entries((() => { const sc = {}; pt.forEach(t => { sc[t.status] = (sc[t.status]||0)+1; }); return sc; })()).map(([st,cnt]) => {
-                    const s = SC[st]||{}; return (<span key={st} style={{fontSize:14,fontWeight:600,padding:"2px 8px",borderRadius:10,background:s.bg,color:s.color}}>{st} {cnt}</span>);
-                  })}
+            {/* Summary + Tasks side by side */}
+            <div className="dash-detail-grid" style={{marginBottom:20}}>
+              {/* Left: Summary cards */}
+              <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                <div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
+                  <div style={{fontSize:12,color:X.textDim,marginBottom:6}}>Progress</div>
+                  <div className="dash-detail-num" style={{fontWeight:700,fontFamily:FM,color:avg===100?X.green:X.text,lineHeight:1}}>{avg}%</div>
+                  <div style={{height:5,background:X.surfaceLight,borderRadius:2,marginTop:12,overflow:"hidden"}}><div style={{height:"100%",width:`${avg}%`,background:c,borderRadius:2}}/></div>
+                </div>
+                <div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
+                  <div style={{fontSize:12,color:X.textDim,marginBottom:6}}>Subtasks</div>
+                  <div className="dash-detail-num" style={{fontWeight:700,fontFamily:FM,color:X.text,lineHeight:1}}>{ds}<span style={{fontSize:17,color:X.textDim}}>/{ts.length}</span></div>
+                </div>
+                <div style={{background:X.surface,borderRadius:12,padding:20,border:`1px solid ${X.border}`}}>
+                  <div style={{fontSize:12,color:X.textDim,marginBottom:6}}>Tasks</div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:4}}>
+                    {Object.entries((() => { const sc = {}; pt.forEach(t => { sc[t.status] = (sc[t.status]||0)+1; }); return sc; })()).map(([st,cnt]) => {
+                      const s = SC[st]||{}; return (<span key={st} style={{fontSize:14,fontWeight:600,padding:"2px 8px",borderRadius:10,background:s.bg,color:s.color}}>{st} {cnt}</span>);
+                    })}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Full Gantt Timeline (same as Timeline tab, filtered to this project) */}
-            <div style={{marginBottom:20}}>
-              <GanttTimeline tasks={twp} subtasks={allS} fp={selProj} fs={"全部"} fpr={"全部"} />
-            </div>
-
-            {/* Task list */}
-            <div style={{background:X.surface,borderRadius:12,border:`1px solid ${X.border}`,overflow:"hidden"}}>
+              {/* Right: Task list */}
+              <div style={{background:X.surface,borderRadius:12,border:`1px solid ${X.border}`,overflow:"hidden"}}>
               <div style={{padding:"12px 20px",borderBottom:`1px solid ${X.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                 <span style={{fontSize:14,fontWeight:700}}>Tasks</span>
                 <button onClick={()=>setShowAdd(!showAdd)} style={{background:showAdd?X.surfaceLight:X.accent,color:showAdd?X.textSec:"#fff",border:showAdd?`1px solid ${X.border}`:"none",borderRadius:20,padding:"6px 16px",fontSize:14,fontWeight:700,cursor:"pointer"}}>{showAdd?"Cancel":"+ Create"}</button>
               </div>
               {showAdd&&(<div style={{padding:"16px 20px",background:X.surfaceLight,borderBottom:`1px solid ${X.accent}30`}}>
-                <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr",gap:8,marginBottom:8}}>
-                  <input value={draft.task} onChange={e=>setDraft(p=>({...p,task:e.target.value}))} placeholder="Task name *" onKeyDown={e=>{if(e.key==="Enter")handleAdd();}} style={iS2}/>
-                  <input type="date" value={toISO(draft.start)} onChange={e=>setDraft(p=>({...p,start:fromISO(e.target.value)}))} style={iS2}/>
-                  <input type="date" value={toISO(draft.end)} onChange={e=>setDraft(p=>({...p,end:fromISO(e.target.value)}))} style={iS2}/>
+                <div style={{marginBottom:8}}>
+                  <div style={{fontSize:12,color:X.textDim,marginBottom:3}}>Task Name *</div>
+                  <input value={draft.task} onChange={e=>setDraft(p=>({...p,task:e.target.value}))} placeholder="Enter task name" onKeyDown={e=>{if(e.key==="Enter")handleAdd();}} style={{...iS2,fontSize:15,padding:"8px 12px"}}/>
                 </div>
-                <div style={{display:"flex",gap:8}}>
-                  <input value={draft.owner} onChange={e=>setDraft(p=>({...p,owner:e.target.value}))} placeholder="Owner" style={{...iS2,flex:1}}/>
-                  <select value={draft.priority} onChange={e=>setDraft(p=>({...p,priority:e.target.value}))} style={{...iS2,flex:1,cursor:"pointer"}}><option>高</option><option>中</option><option>低</option></select>
-                  <button onClick={handleAdd} disabled={!draft.task.trim()} style={{background:draft.task.trim()?X.accent:X.border,color:"#fff",border:"none",borderRadius:20,padding:"6px 20px",fontSize:14,fontWeight:700,cursor:draft.task.trim()?"pointer":"not-allowed",whiteSpace:"nowrap"}}>Confirm</button>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:8}}>
+                  <div><div style={{fontSize:12,color:X.textDim,marginBottom:3}}>Start Date</div><CalendarPicker value={draft.start} onChange={v=>setDraft(p=>({...p,start:v}))} showTime/></div>
+                  <div><div style={{fontSize:12,color:X.textDim,marginBottom:3}}>End Date</div><CalendarPicker value={draft.end} onChange={v=>setDraft(p=>({...p,end:v}))} showTime/></div>
+                  <div><div style={{fontSize:12,color:X.textDim,marginBottom:3}}>Category</div><select value={draft.category||"活動"} onChange={e=>setDraft(p=>({...p,category:e.target.value}))} style={{...iS2,cursor:"pointer"}}>{["商務合作","活動","播出/開始","行銷","發行","市場展"].map(o=><option key={o}>{o}</option>)}</select></div>
+                </div>
+                <div style={{display:"flex",gap:8,alignItems:"flex-end"}}>
+                  <div style={{flex:1}}><div style={{fontSize:12,color:X.textDim,marginBottom:3}}>Owner</div><input value={draft.owner} onChange={e=>setDraft(p=>({...p,owner:e.target.value}))} placeholder="Owner" style={iS2}/></div>
+                  <div style={{flex:1}}><div style={{fontSize:12,color:X.textDim,marginBottom:3}}>Priority</div><select value={draft.priority} onChange={e=>setDraft(p=>({...p,priority:e.target.value}))} style={{...iS2,cursor:"pointer"}}><option>高</option><option>中</option><option>低</option></select></div>
+                  <button onClick={handleAdd} disabled={!draft.task.trim()} style={{background:draft.task.trim()?X.accent:X.border,color:"#fff",border:"none",borderRadius:20,padding:"8px 20px",fontSize:14,fontWeight:700,cursor:draft.task.trim()?"pointer":"not-allowed",whiteSpace:"nowrap",height:36}}>Confirm</button>
                 </div>
               </div>)}
               {pt.map(task=>{const sc=SC[task.status]||{},pc=PC[task.priority]||{};const isE=expanded.has(task.id);const tSubs=allS.filter(s=>s.task_id===task.id);return (
@@ -832,9 +835,27 @@ function Dashboard(){
                     </label>
                     <span style={{fontSize:14,color:X.textDim}}>{sub.owner}</span>
                     <span style={{fontFamily:FM,fontSize:14,color:sub.done?X.green:X.textDim,minWidth:70,textAlign:"right"}}>{sub.done_date?fD(sub.done_date):"\u2014"}</span>
+                    <button onClick={e=>{e.stopPropagation();deleteSub(sub.id);}} style={{background:"transparent",border:"none",color:X.red,fontSize:14,cursor:"pointer",padding:"2px 6px",opacity:0.6}}>×</button>
                   </div>))}
+                  {isE&&(showSubAdd===task.id
+                    ?<div onClick={e=>e.stopPropagation()} style={{padding:"8px 20px 8px 52px",background:X.surfaceLight,borderBottom:`1px solid ${X.border}22`,display:"flex",alignItems:"center",gap:8}}>
+                      <input value={subDraft.name} onChange={e=>setSubDraft(p=>({...p,name:e.target.value}))} placeholder="Subtask name" autoFocus onKeyDown={e=>{if(e.key==="Enter"&&subDraft.name.trim()){addSub(task.id,{name:subDraft.name,owner:subDraft.owner});setSubDraft({name:"",owner:"—"});setShowSubAdd(null);}if(e.key==="Escape")setShowSubAdd(null);}} style={{...iS2,flex:1,fontSize:13,padding:"5px 10px"}}/>
+                      <input value={subDraft.owner} onChange={e=>setSubDraft(p=>({...p,owner:e.target.value}))} placeholder="Owner" style={{...iS2,width:100,fontSize:13,padding:"5px 10px"}}/>
+                      <button onClick={()=>{if(subDraft.name.trim()){addSub(task.id,{name:subDraft.name,owner:subDraft.owner});setSubDraft({name:"",owner:"—"});setShowSubAdd(null);}}} style={{background:X.accent,color:"#fff",border:"none",borderRadius:16,padding:"4px 14px",fontSize:13,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>Add</button>
+                      <button onClick={()=>setShowSubAdd(null)} style={{background:"transparent",border:`1px solid ${X.border}`,borderRadius:16,padding:"4px 12px",fontSize:13,color:X.textSec,cursor:"pointer"}}>Cancel</button>
+                    </div>
+                    :<div onClick={e=>{e.stopPropagation();setShowSubAdd(task.id);setSubDraft({name:"",owner:"—"});}} style={{padding:"8px 20px 8px 52px",background:X.surfaceLight,borderBottom:`1px solid ${X.border}22`,cursor:"pointer",opacity:0.7}} onMouseEnter={e=>e.currentTarget.style.opacity="1"} onMouseLeave={e=>e.currentTarget.style.opacity="0.7"}>
+                      <span style={{fontSize:13,color:X.accent,fontWeight:500}}>+ Add subtask</span>
+                    </div>
+                  )}
                 </div>);})}
               {!pt.length&&<div style={{padding:60,textAlign:"center",color:X.textDim}}><div style={{fontSize:40,marginBottom:12,opacity:0.3}}>📋</div><div style={{fontSize:16,fontWeight:600,marginBottom:6,color:X.textSec}}>No tasks yet</div><div style={{fontSize:14,marginBottom:16}}>Get started by creating a task for this project</div><button onClick={()=>setShowAdd(true)} style={{background:X.accent,color:"#fff",border:"none",borderRadius:20,padding:"8px 20px",fontSize:14,fontWeight:700,cursor:"pointer"}}>+ Create</button></div>}
+              </div>
+            </div>
+
+            {/* Full Gantt Timeline */}
+            <div style={{marginBottom:20}}>
+              <GanttTimeline tasks={twp} subtasks={allS} fp={selProj} fs={"全部"} fpr={"全部"} />
             </div>
           </div>);
         })()}
@@ -862,8 +883,8 @@ function Dashboard(){
                 <div style={{display:"grid",gridTemplateColumns:"1.5fr 2fr 1fr 1fr",gap:8,marginBottom:8}}>
                   <div><div style={{fontSize:12,color:X.textDim,marginBottom:3}}>Project *</div><input value={draft.project} onChange={e=>setDraft(p=>({...p,project:e.target.value}))} list="pl" style={iS2}/><datalist id="pl">{[...new Set(allT.map(t=>t.project))].map(p=><option key={p} value={p}/>)}</datalist></div>
                   <div><div style={{fontSize:12,color:X.textDim,marginBottom:3}}>Task *</div><input value={draft.task} onChange={e=>setDraft(p=>({...p,task:e.target.value}))} onKeyDown={e=>{if(e.key==="Enter")doAdd();}} style={iS2}/></div>
-                  <div><div style={{fontSize:12,color:X.textDim,marginBottom:3}}>Start</div><input type="date" value={toISO(draft.start)} onChange={e=>setDraft(p=>({...p,start:fromISO(e.target.value)}))} style={iS2}/></div>
-                  <div><div style={{fontSize:12,color:X.textDim,marginBottom:3}}>End</div><input type="date" value={toISO(draft.end)} onChange={e=>setDraft(p=>({...p,end:fromISO(e.target.value)}))} style={iS2}/></div>
+                  <div><div style={{fontSize:12,color:X.textDim,marginBottom:3}}>Start</div><CalendarPicker value={draft.start} onChange={v=>setDraft(p=>({...p,start:v}))} showTime/></div>
+                  <div><div style={{fontSize:12,color:X.textDim,marginBottom:3}}>End</div><CalendarPicker value={draft.end} onChange={v=>setDraft(p=>({...p,end:v}))} showTime/></div>
                 </div>
                 <div style={{display:"flex",gap:8}}>
                   <input value={draft.owner} onChange={e=>setDraft(p=>({...p,owner:e.target.value}))} placeholder="Owner" style={{...iS2,flex:1}}/>
@@ -898,7 +919,7 @@ function Dashboard(){
                         <td style={{padding:"9px 8px",maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><EditableCell value={d.notes} onSave={v=>updateTask(d.id,"notes",v)} style={{fontSize:14,color:X.textSec}}/></td>
                         <td style={{padding:"6px",textAlign:"center"}}><button onClick={e=>{e.stopPropagation();if(confirm("Delete?"))deleteTask(d.id);}} style={{background:"transparent",border:"none",cursor:"pointer",color:X.red,fontSize:14,padding:"2px 6px"}}>×</button></td>
                       </tr>,
-                      ...(isE?tSubs.map(sub=>(
+                      ...(isE?[...tSubs.map(sub=>(
                         <tr key={sub.id} style={{background:X.surfaceLight,borderBottom:`1px solid ${X.border}22`}}>
                           <td/>
                           <td style={{padding:"7px 8px 7px 30px",fontSize:14}}>
@@ -910,8 +931,24 @@ function Dashboard(){
                           <td style={{padding:"7px 8px",fontSize:14}}><EditableCell value={sub.owner} onSave={v=>updateSub(sub.id,"owner",v)} style={{color:X.textDim}}/></td>
                           <td colSpan={2} style={{padding:"7px 8px"}}>{sub.done?<span style={{fontSize:14,color:X.green,fontWeight:600}}>Done</span>:<span style={{fontSize:14,color:X.textDim}}>Pending</span>}</td>
                           <td style={{padding:"7px 8px",fontFamily:FM,fontSize:14,color:sub.done?X.green:X.textDim}}>{sub.done_date?fD(sub.done_date):"\u2014"}</td>
-                          <td colSpan={5} style={{padding:"7px 8px",fontSize:14}}><EditableCell value={sub.notes} onSave={v=>updateSub(sub.id,"notes",v)} style={{color:X.textDim}}/></td>
-                        </tr>)):[])
+                          <td colSpan={4} style={{padding:"7px 8px",fontSize:14}}><EditableCell value={sub.notes} onSave={v=>updateSub(sub.id,"notes",v)} style={{color:X.textDim}}/></td>
+                          <td style={{padding:"4px",textAlign:"center"}}><button onClick={e=>{e.stopPropagation();deleteSub(sub.id);}} style={{background:"transparent",border:"none",color:X.red,fontSize:14,cursor:"pointer",padding:"2px 6px",opacity:0.6}}>×</button></td>
+                        </tr>)),
+                        <tr key={d.id+"_addsub"} style={{background:X.surfaceLight,borderBottom:`1px solid ${X.border}22`}}>
+                          <td/>
+                          <td colSpan={10} style={{padding:"6px 8px 6px 30px"}}>
+                            {showSubAdd===d.id
+                              ?<div onClick={e=>e.stopPropagation()} style={{display:"flex",alignItems:"center",gap:8}}>
+                                <input value={subDraft.name} onChange={e=>setSubDraft(p=>({...p,name:e.target.value}))} placeholder="Subtask name" autoFocus onKeyDown={e=>{if(e.key==="Enter"&&subDraft.name.trim()){addSub(d.id,{name:subDraft.name,owner:subDraft.owner});setSubDraft({name:"",owner:"—"});setShowSubAdd(null);}if(e.key==="Escape")setShowSubAdd(null);}} style={{...iS2,flex:1,fontSize:13,padding:"4px 10px"}}/>
+                                <input value={subDraft.owner} onChange={e=>setSubDraft(p=>({...p,owner:e.target.value}))} placeholder="Owner" style={{...iS2,width:100,fontSize:13,padding:"4px 10px"}}/>
+                                <button onClick={()=>{if(subDraft.name.trim()){addSub(d.id,{name:subDraft.name,owner:subDraft.owner});setSubDraft({name:"",owner:"—"});setShowSubAdd(null);}}} style={{background:X.accent,color:"#fff",border:"none",borderRadius:16,padding:"3px 12px",fontSize:13,fontWeight:600,cursor:"pointer"}}>Add</button>
+                                <button onClick={()=>setShowSubAdd(null)} style={{background:"transparent",border:`1px solid ${X.border}`,borderRadius:16,padding:"3px 10px",fontSize:13,color:X.textSec,cursor:"pointer"}}>Cancel</button>
+                              </div>
+                              :<span onClick={e=>{e.stopPropagation();setShowSubAdd(d.id);setSubDraft({name:"",owner:"—"});}} style={{fontSize:13,color:X.accent,fontWeight:500,cursor:"pointer",opacity:0.7}} onMouseEnter={e=>e.currentTarget.style.opacity="1"} onMouseLeave={e=>e.currentTarget.style.opacity="0.7"}>+ Add subtask</span>
+                            }
+                          </td>
+                        </tr>
+                      ]:[])
                     ];})}
                 </tbody>
               </table>
