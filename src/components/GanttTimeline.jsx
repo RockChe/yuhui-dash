@@ -61,7 +61,7 @@ export default function GanttTimeline({ tasks, subtasks, fp, fs, fpr, isMobile, 
   const dates = fil.flatMap(d => [pD(d.start), pD(d.end)]).filter(Boolean);
   const mn = new Date(Math.min(...dates)), mx = new Date(Math.max(...dates)), td = (mx - mn) / 864e5 + 1;
   const months = computeScaleDivisions(mn, mx, td, timeDim);
-  const gw = ganttWidths || { day: 20, week: 50, month: 100, quarter: 200 };
+  const gw = ganttWidths || { day: 20, week: 50, month: 50, quarter: 100 };
   const ganttMinW = timeDim === "日" ? Math.max(700, td * gw.day) : timeDim === "週" ? Math.max(700, Math.ceil(td / 7) * gw.week) : timeDim === "季" ? Math.max(700, months.length * gw.quarter) : Math.max(700, months.length * gw.month);
   const pMap = {}; fil.forEach(d => { if (!pMap[d.project]) pMap[d.project] = []; pMap[d.project].push(d); });
   const pcMap = {}; [...new Set(tasks.map(d => d.project))].forEach((p, i) => { pcMap[p] = PJC[i % PJC.length]; });

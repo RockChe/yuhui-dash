@@ -84,7 +84,7 @@ export default function Dashboard() {
   const [searchQ, setSearchQ] = useState("");
   const [ovHover, setOvHover] = useState(null);
   const [timeDim, setTimeDim] = useState("月");
-  const defaultGW = { day: 20, week: 50, month: 100, quarter: 200 };
+  const defaultGW = { day: 20, week: 50, month: 50, quarter: 100 };
   const [ganttWidths, setGanttWidths] = useState(() => {
     try { const s = localStorage.getItem("dash-ganttWidths"); if (s) { const parsed = JSON.parse(s); if (parsed.day !== undefined && !parsed.overview) { return { overview: { ...parsed }, project: { ...parsed }, timeline: { ...parsed } }; } return parsed; } } catch {}
     return { overview: { ...defaultGW }, project: { ...defaultGW }, timeline: { ...defaultGW } };
@@ -325,7 +325,7 @@ export default function Dashboard() {
               const td = (mx - mn) / 864e5 + 1;
               const todayPct = ((new Date() - mn) / 864e5) / td * 100;
               const months = computeScaleDivisions(mn, mx, td, timeDim);
-              const ovGW = ganttWidths.overview || { day: 20, week: 50, month: 100, quarter: 200 };
+              const ovGW = ganttWidths.overview || { day: 20, week: 50, month: 50, quarter: 100 };
               const ovMinW = timeDim === "日" ? Math.max(700, td * ovGW.day) : timeDim === "週" ? Math.max(700, Math.ceil(td / 7) * ovGW.week) : timeDim === "季" ? Math.max(700, months.length * ovGW.quarter) : Math.max(700, months.length * ovGW.month);
               return (<div style={ovMinW > 0 ? { overflowX: "auto" } : {}}>
               <div>
