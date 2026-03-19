@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { THEMES, THEME_ORDER, X, SC, PC, CC, PJC, F, FM, applyTheme, getIS2 } from "@/lib/theme";
-import { pD, fD, computeProgress, tasksToCSV, parseCSV, downloadCSV, getTemplate } from "@/lib/utils";
+import { pD, fD, computeProgress, tasksToCSV, parseCSV, parseGoogleSheetCSV, downloadCSV, getTemplate } from "@/lib/utils";
 import useTaskManager from "@/hooks/useTaskManager";
 import EditableCell from "./EditableCell";
 import InlineNote from "./InlineNote";
@@ -11,6 +11,7 @@ import OwnerTags from "./OwnerTags";
 import ProgressBar from "./ProgressBar";
 import TaskModal from "./TaskModal";
 import FileManagerModal from "./FileManagerModal";
+import ImportModal from "./ImportModal";
 import GanttTimeline, { TimeScaleToggle, computeScaleDivisions } from "./GanttTimeline";
 import MobileProjectTimeline from "./MobileProjectTimeline";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
@@ -71,6 +72,8 @@ export default function Dashboard() {
   const [customProjects, setCustomProjects] = useState(new Set());
   const [modalTask, setModalTask] = useState(null);
   const [showFileManager, setShowFileManager] = useState(false);
+  const [importModal, setImportModal] = useState(null);
+  const [sheetImporting, setSheetImporting] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [newCat, setNewCat] = useState("");
   const [newOwner, setNewOwner] = useState("");
@@ -127,7 +130,79 @@ export default function Dashboard() {
   const SI = ({ col }) => sortCol !== col ? <span style={{ opacity: 0.3, marginLeft: 3 }}>↕</span> : <span style={{ marginLeft: 3, color: X.accent }}>{sortDir === "asc" ? "↑" : "↓"}</span>;
   const allProjNames = useMemo(() => [...new Set([...twp.map(d => d.project), ...customProjects])], [twp, customProjects]);
   const pcMap = {}; allProjNames.forEach((p, i) => { pcMap[p] = PJC[i % PJC.length]; });
-  const handleImport = e => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = ev => { const imported = parseCSV(ev.target.result); if (imported.length) { const mx = allT.reduce((m, t) => { const n = parseInt(t.id.replace("T", "")); return n > m ? n : m; }, 0); const ms = allT.reduce((m, t) => t.sort_order > m ? t.sort_order : m, 0); const withIds = imported.map((t, i) => ({ ...t, id: t.id || `T${String(mx + 1 + i).padStart(2, "0")}`, sort_order: ms + 1 + i })); setAllT(p => [...p, ...withIds]); showToast(`${imported.length} tasks imported`, "success"); } }; reader.readAsText(file); e.target.value = ""; };
+  const handleImport = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const imported = parseCSV(ev.target.result);
+      setImportModal(imported.length ? { pendingTasks: imported, source: "csv" } : { pendingTasks: [], source: "csv" });
+    };
+    reader.readAsText(file); e.target.value = "";
+  };
+  const handleSheetImport = async () => {
+    const url = prompt("Paste a public Google Sheet URL:");
+    if (!url || !url.trim()) return;
+    setSheetImporting(true);
+    try {
+      let csvUrl = url.trim();
+      const editMatch = csvUrl.match(/\/spreadsheets\/d\/([^/]+)/);
+      if (editMatch && !csvUrl.includes("/pub?") && !csvUrl.includes("export?")) {
+        csvUrl = `https://docs.google.com/spreadsheets/d/${editMatch[1]}/export?format=csv`;
+      }
+      const res = await fetch(csvUrl);
+      if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+      const text = await res.text();
+      const imported = parseGoogleSheetCSV(text);
+      setImportModal(imported.length ? { pendingTasks: imported, source: "sheet" } : { pendingTasks: [], source: "sheet" });
+    } catch (err) {
+      showToast(`Sheet import failed: ${err.message}`, "error");
+    } finally {
+      setSheetImporting(false);
+    }
+  };
+  const handleImportConfirm = (mode) => {
+    if (!importModal?.pendingTasks?.length) return;
+    const pending = importModal.pendingTasks;
+    const mx = allT.reduce((m, t) => { const n = parseInt(t.id.replace("T", "")); return n > m ? n : m; }, 0);
+    const ms = allT.reduce((m, t) => t.sort_order > m ? t.sort_order : m, 0);
+    let created = 0, updated = 0;
+    if (mode === "overwrite") {
+      const existingMap = {};
+      allT.forEach(t => { existingMap[`${(t.project || "").toLowerCase().trim()}::${(t.task || "").toLowerCase().trim()}`] = t.id; });
+      const updates = [];
+      const inserts = [];
+      pending.forEach(t => {
+        const key = `${(t.project || "").toLowerCase().trim()}::${(t.task || "").toLowerCase().trim()}`;
+        if (existingMap[key]) {
+          updates.push({ id: existingMap[key], data: t });
+          updated++;
+        } else {
+          inserts.push(t);
+          created++;
+        }
+      });
+      setAllT(prev => {
+        let next = prev.map(existing => {
+          const upd = updates.find(u => u.id === existing.id);
+          if (!upd) return existing;
+          return { ...existing, project: upd.data.project || existing.project, task: upd.data.task || existing.task, status: upd.data.status || existing.status, category: upd.data.category || existing.category, start: upd.data.start ?? existing.start, end: upd.data.end ?? existing.end, duration: upd.data.duration ?? existing.duration, owner: upd.data.owner || existing.owner, priority: upd.data.priority || existing.priority, notes: upd.data.notes ?? existing.notes };
+        });
+        const curMx = next.reduce((m, t) => { const n = parseInt(t.id.replace("T", "")); return n > m ? n : m; }, 0);
+        const curMs = next.reduce((m, t) => t.sort_order > m ? t.sort_order : m, 0);
+        const withIds = inserts.map((t, i) => ({ ...t, id: `T${String(curMx + 1 + i).padStart(2, "0")}`, sort_order: curMs + 1 + i }));
+        return [...next, ...withIds];
+      });
+    } else {
+      const withIds = pending.map((t, i) => ({ ...t, id: `T${String(mx + 1 + i).padStart(2, "0")}`, sort_order: ms + 1 + i }));
+      setAllT(p => [...p, ...withIds]);
+      created = pending.length;
+    }
+    setImportModal(null);
+    const parts = [];
+    if (created) parts.push(`${created} created`);
+    if (updated) parts.push(`${updated} updated`);
+    showToast(`Import complete: ${parts.join(", ")}`, "success");
+  };
   const iS2 = getIS2();
 
   const navigate = useCallback((dir) => {
@@ -651,11 +726,12 @@ export default function Dashboard() {
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", ...(isMobile ? { width: "100%", justifyContent: "space-between" } : {}) }}>
                 {isMobile ? (
                   <>
-                    <div style={{ display: "flex", gap: 6 }}>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       <button onClick={() => downloadCSV(tasksToCSV(allT), "tasks_export.csv")} style={{ background: X.surfaceLight, border: `1px solid ${X.border}`, borderRadius: 20, padding: "5px 10px", fontSize: 12, color: X.textSec, cursor: "pointer" }}>Export</button>
                       <label style={{ background: X.surfaceLight, border: `1px solid ${X.border}`, borderRadius: 20, padding: "5px 10px", fontSize: 12, color: X.accent, cursor: "pointer", fontWeight: 600 }}>
                         Import<input type="file" accept=".csv" onChange={handleImport} style={{ display: "none" }} />
                       </label>
+                      <button onClick={handleSheetImport} disabled={sheetImporting} style={{ background: X.surfaceLight, border: `1px solid ${X.border}`, borderRadius: 20, padding: "5px 10px", fontSize: 12, color: X.accent, cursor: sheetImporting ? "not-allowed" : "pointer", fontWeight: 600, opacity: sheetImporting ? 0.6 : 1 }}>{sheetImporting ? "..." : "Sheet"}</button>
                     </div>
                     <button onClick={() => setShowTblAdd(!showTblAdd)} style={{ background: showTblAdd ? X.surfaceLight : X.accent, color: showTblAdd ? X.textSec : "#fff", border: showTblAdd ? `1px solid ${X.border}` : "none", borderRadius: 20, padding: "5px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{showTblAdd ? "Cancel" : "+ Create"}</button>
                   </>
@@ -666,6 +742,7 @@ export default function Dashboard() {
                     <label style={{ background: X.surfaceLight, border: `1px solid ${X.border}`, borderRadius: 20, padding: "5px 14px", fontSize: 14, color: X.accent, cursor: "pointer", fontWeight: 600 }}>
                       Import CSV<input type="file" accept=".csv" onChange={handleImport} style={{ display: "none" }} />
                     </label>
+                    <button onClick={handleSheetImport} disabled={sheetImporting} style={{ background: X.surfaceLight, border: `1px solid ${X.border}`, borderRadius: 20, padding: "5px 14px", fontSize: 14, color: X.accent, cursor: sheetImporting ? "not-allowed" : "pointer", fontWeight: 600, opacity: sheetImporting ? 0.6 : 1 }}>{sheetImporting ? "Loading..." : "Import Sheet"}</button>
                     <button onClick={() => setShowTblAdd(!showTblAdd)} style={{ background: showTblAdd ? X.surfaceLight : X.accent, color: showTblAdd ? X.textSec : "#fff", border: showTblAdd ? `1px solid ${X.border}` : "none", borderRadius: 20, padding: "5px 16px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>{showTblAdd ? "Cancel" : "+ Create"}</button>
                   </>
                 )}
@@ -835,8 +912,11 @@ export default function Dashboard() {
             </div>
             <div style={{ background: X.surface, borderRadius: 12, padding: 20, border: `1px solid ${X.border}` }}>
               <h3 style={{ fontSize: 14, fontWeight: 700, margin: "0 0 12px", display: "flex", alignItems: "center", gap: 8 }}><span style={{ width: 3, height: 14, background: X.green, borderRadius: 2 }} />Data Source</h3>
-              <div style={{ fontSize: 13, color: X.textSec, marginBottom: 10 }}>Google Sheets CSV{sheetError ? <span style={{ color: X.red, marginLeft: 8 }}>({sheetError})</span> : <span style={{ color: X.green, marginLeft: 8 }}>(connected)</span>}</div>
-              <button onClick={reloadSheet} disabled={sheetLoading} style={{ background: X.accent, color: "#fff", border: "none", borderRadius: 20, padding: "7px 20px", fontSize: 13, fontWeight: 600, cursor: sheetLoading ? "not-allowed" : "pointer", opacity: sheetLoading ? 0.6 : 1 }}>{sheetLoading ? "Loading..." : "Reload Sheet"}</button>
+              <div style={{ fontSize: 13, color: X.textSec, marginBottom: 10 }}>Reload data from the default Google Sheet, or import from CSV / custom Sheet URL via the Data tab toolbar.</div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={reloadSheet} disabled={sheetLoading} style={{ background: X.accent, color: "#fff", border: "none", borderRadius: 20, padding: "7px 20px", fontSize: 13, fontWeight: 600, cursor: sheetLoading ? "not-allowed" : "pointer", opacity: sheetLoading ? 0.6 : 1 }}>{sheetLoading ? "Loading..." : "Reload Default Sheet"}</button>
+              </div>
+              {sheetError && <div style={{ fontSize: 12, color: X.red, marginTop: 8 }}>Last error: {sheetError}</div>}
             </div>
             <div style={{ background: X.surface, borderRadius: 12, padding: 20, border: `1px solid ${X.border}`, gridColumn: "1" }}>
               <h3 style={{ fontSize: 14, fontWeight: 700, margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}><span style={{ width: 3, height: 14, background: X.amber, borderRadius: 2 }} />Timeline Width (px per unit)</h3>
@@ -860,6 +940,7 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+      {importModal && <ImportModal pendingTasks={importModal.pendingTasks} existingTasks={allT} onConfirm={handleImportConfirm} onCancel={() => setImportModal(null)} />}
       {modalTask && <TaskModal task={modalTask} project={selProj} onClose={() => setModalTask(null)} addTask={addTask} updateTask={updateTask} allS={allS} addSub={addSub} deleteSub={deleteSub} toggleSub={toggleSub} updateSub={updateSub} configCats={configCats} configOwners={configOwners} reorderSubs={reorderSubs} allL={allL} allF={allF} addLink={addLink} addFile={addFile} deleteLink={deleteLink} deleteFile={deleteFile} />}
       {showFileManager && selProj && <FileManagerModal project={selProj} tasks={twp} allL={allL} allF={allF} addLink={addLink} addFile={addFile} deleteLink={deleteLink} deleteFile={deleteFile} onClose={() => setShowFileManager(false)} />}
       {toast && <div style={{ position: "fixed", bottom: 32, left: "50%", transform: "translateX(-50%)", zIndex: 100, animation: toast.fading ? "toastOut 0.3s ease forwards" : "toastIn 0.3s ease", display: "flex", alignItems: "center", gap: 10, background: X.surface, borderRadius: 12, padding: "12px 20px", boxShadow: `0 4px 20px ${X.shadowHeavy}`, border: `1px solid ${X.border}`, maxWidth: "90vw" }}>
